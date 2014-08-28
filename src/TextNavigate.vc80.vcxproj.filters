@@ -1,0 +1,126 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx</Extensions>
+    </Filter>
+    <Filter Include="Source Files\cregexp">
+      <UniqueIdentifier>{47b38369-2a96-4037-b9f6-17f460ce5540}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\unicode">
+      <UniqueIdentifier>{f2f6c07b-b7ca-4877-b0eb-3e3bdb3f52d1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\common">
+      <UniqueIdentifier>{eb643897-336f-45bd-97a0-5ea5bd7cf725}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\misc">
+      <UniqueIdentifier>{83350c08-7414-4b73-a8c4-239248a2d0b3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Headers.c">
+      <UniqueIdentifier>{2b2556cd-288b-44de-b824-b9a95a38d394}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Dialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pclasses.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="reg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sgml.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="string.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TextNavigate.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tools.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cregexp\cregexp.cpp">
+      <Filter>Source Files\cregexp</Filter>
+    </ClCompile>
+    <ClCompile Include="unicode\Character.cpp">
+      <Filter>Source Files\unicode</Filter>
+    </ClCompile>
+    <ClCompile Include="unicode\CharacterClass.cpp">
+      <Filter>Source Files\unicode</Filter>
+    </ClCompile>
+    <ClCompile Include="unicode\DString.cpp">
+      <Filter>Source Files\unicode</Filter>
+    </ClCompile>
+    <ClCompile Include="unicode\Encodings.cpp">
+      <Filter>Source Files\unicode</Filter>
+    </ClCompile>
+    <ClCompile Include="unicode\SString.cpp">
+      <Filter>Source Files\unicode</Filter>
+    </ClCompile>
+    <ClCompile Include="unicode\String.cpp">
+      <Filter>Source Files\unicode</Filter>
+    </ClCompile>
+    <ClCompile Include="unicode\StringBuffer.cpp">
+      <Filter>Source Files\unicode</Filter>
+    </ClCompile>
+    <ClCompile Include="unicode\UnicodeTools.cpp">
+      <Filter>Source Files\unicode</Filter>
+    </ClCompile>
+    <ClCompile Include="common\Exception.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="common\Logging.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="common\MemoryChunks.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="misc\malloc.c">
+      <Filter>Source Files\misc</Filter>
+    </ClCompile>
+    <ClCompile Include="unicode\BitArray.cpp">
+      <Filter>Source Files\unicode</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Dialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="farkeys.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pclasses.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="reg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sgml.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="string.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TextNavigate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tools.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers.c\plugin.hpp">
+      <Filter>Header Files\Headers.c</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
