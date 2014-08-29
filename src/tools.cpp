@@ -2,6 +2,8 @@
 #include <sstream>
 #include <locale>         // std::locale, std::ctype, std::use_facet
 
+#include "Headers.c/plugin.hpp"
+
 #include "tools.h"
 #include "commons.h"
 
@@ -80,7 +82,7 @@ int is_char(UCHAR c)
   return CharSet.GetBit(c);
 } //is_char
 
-int get_word(WideString &word, const char *str, int pos, int sln, int &begin_word_pos)
+int get_word(WideString &word, WideString const &str, int pos, int sln, int &begin_word_pos)
 {
   int i, j;
   for (i = pos; i > 0 && is_char(str[i]); i--);
@@ -104,7 +106,7 @@ int get_word(WideString &word, const char *str, int pos, int sln, int &begin_wor
 #define ASIZE 256
 static UCHAR qs_bc[ASIZE];
 
-void InitQuickSearch(bool SearchUp, const char *substr, int strlen_word, bool casesensitive)
+void InitQuickSearch(bool SearchUp, WideString const &substr, int strlen_word, bool casesensitive)
 {
   if (SearchUp)
   {
@@ -140,7 +142,7 @@ void InitQuickSearch(bool SearchUp, const char *substr, int strlen_word, bool ca
   }
 } //InitQuickSearch
 
-int QuickSearch_FW(const char* String, const char* substr, int n, int m, int begin_word_pos, bool SearchSelection, bool casesensitive)
+int QuickSearch_FW(WideString const & string, const char* substr, int n, int m, int begin_word_pos, bool SearchSelection, bool casesensitive)
 {
   int i;
 
@@ -164,7 +166,7 @@ int QuickSearch_FW(const char* String, const char* substr, int n, int m, int beg
   return -1;
 } //QuickSearch_FW
 
-int QuickSearch_BW(const char* String, const char* substr, int n, int m, bool SearchSelection, bool casesensitive)
+int QuickSearch_BW(WideString const & string, WideString const & substr, int n, int m, bool SearchSelection, bool casesensitive)
 {
   int i;
 
@@ -172,9 +174,9 @@ int QuickSearch_BW(const char* String, const char* substr, int n, int m, bool Se
   while (i >= 0)
   {
     if (casesensitive)
-      res = memcmp(&String[i], substr, m) != 0;
+      res = memcmp(string.data() + i, substr.data(), m) != 0;
     else
-      res = FSF.LStrnicmp(&String[i], substr, m) != 0;
+      res = FSF.LStrnicmp(string.data() + i, substr, m) != 0;
 
     if (!res && (SearchSelection ||
                  (!is_char(String[i + m]) &&
@@ -326,6 +328,15 @@ bool SplitRegExpr(const char* RegExpr, const char* InputStr, SMatches& m)
   return true;
 }
 
+WideString const	getEditorFilename (PluginStartupInfo const & info) {
+  size_t      fileNameSize = info.EditorControl(-1,ECTL_GETFILENAME,0,0);
+  WideString  fileName(fileNameSize + 1, '\0');
+        
+  Info.EditorControl(-1, ECTL_GETFILENAME, fileNameSize, const_cast<LPWSTR> (fileName.c_str()));
+
+  return fileName;
+}
+
 WideString const	a2w(AnsiString const &s) {
 	return WideString(s.begin(), s.end());
 }
@@ -344,7 +355,7 @@ StringPtr asStringPtr(WideString const &s) {
   return StringPtr(result);
 }
 
-AnsiString const	toLower(AnsiString const &s) {
+WideString const	toLower(WideString const &s) {
   std::locale               loc;
   AnsiString                result (s);
   std::ctype<char> const  & facet = std::use_facet <std::ctype<char>> (loc);

@@ -17,11 +17,11 @@ void AddEngCharsToUnion(void);
 void AddDigitsToUnion(void);
 void AddSubSetToUnion(UCHAR *set);
 int is_char(UCHAR c);
-int get_word(WideString & word, const char* str, int pos, int sln, int& begin_word_pos);
+int get_word(WideString & word, WideString const & str, int pos, int sln, int& begin_word_pos);
 
-void InitQuickSearch(bool SearchUp, const char* substr, int strlen_word, bool casesensitive);
-int QuickSearch_FW(const char* String, const char* substr, int n, int m, int begin_word_pos, bool SearchSelection, bool casesensitive);
-int QuickSearch_BW(const char* String, const char* substr, int n, int m, bool SearchSelection, bool casesensitive);
+void InitQuickSearch(bool SearchUp, WideString const & substr, int strlen_word, bool casesensitive);
+int QuickSearch_FW(WideString const & String, WideString const & substr, int n, int m, int begin_word_pos, bool SearchSelection, bool casesensitive);
+int QuickSearch_BW(WideString const & String, WideString const & substr, int n, int m, bool SearchSelection, bool casesensitive);
 
 bool GetFile(char const* FileName, char*& buffer, UINT& sz);
 int file_exists(WideString const & fname);
@@ -52,11 +52,12 @@ static wchar_t tmp_str[1500];
 
 bool SplitRegExpr(const char* RegExpr, const char* InputStr, SMatches& m);
 
+WideString const	getEditorFilename (PluginStartupInfo const & info);
+
 WideString const	a2w(AnsiString const &s);
 AnsiString const	w2a(WideString const &s);
-AnsiString const	toLower(AnsiString const &s);
+WideString const	toLower(WideString const &s);
 AnsiString const	i2s(long i);
-
 
 class String;
 typedef std::unique_ptr<String>   StringPtr;
