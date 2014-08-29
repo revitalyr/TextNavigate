@@ -5,6 +5,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+#include <list>
+
 //#include "crtdll.h"
 #include "commons.h"
 #include "string.hpp"
@@ -18,17 +20,19 @@
 
 typedef struct _FOUND
 {
-  unsigned int path_index;
-  const char *file_name;
-  const char *file_path;
+  unsigned int  path_index;
+  WideString    file_name;
+  WideString    file_path;
 } FOUND, *LPFND;
 
 #define MAX_ENV_VARS 16
 typedef struct ENV_VAR
 {
- char *EnvVar;
- char *EnvVarValue;
-} ENV_VARS[MAX_ENV_VARS];
+  WideString    EnvVar;
+  WideString    EnvVarValue;
+};
+
+using ENV_VARS = std::list<ENV_VAR>;
 
 #define PWL 0x400
 #define MAX_PATHWAYS_COUNT 0x100   //кол-во pathways
@@ -73,10 +77,8 @@ class CFoundDataArray : public CRefArray<_FOUND>
     {
       for (int i = 0; i < m_count; i++)
       {
-        if (Item(i)->file_name)
-          delete Item(i)->file_name;
-        if (Item(i)->file_path)
-          delete Item(i)->file_path;
+        Item(i)->file_name.clear();
+        Item(i)->file_path.clear();
       }
       m_count = 0;
     }
@@ -172,10 +174,13 @@ class CSearchPaths
 
 struct SMethod
 {
-  SMethod(PSgmlEl elem, const char* Tag);
+  SMethod(PSgmlEl elem, WideString const & Tag);
   ~SMethod();
 
-  char *Name, *Type, *Definition, *Implementation;
+  WideString    Name;
+  WideString    Type;
+  WideString    Definition;
+  WideString    Implementation;
 }; //SMethod
 
 /*******************************************************************************
@@ -187,8 +192,10 @@ struct SClass
   SClass(PSgmlEl elem);
   ~SClass();
 
-  char *Name, *Definition, *End;
-  SMethod* Method;
+  WideString    Name;
+  WideString    Definition;
+  WideString    End;
+  SMethod     * Method;
 }; //SClass
 
 /*******************************************************************************
@@ -391,8 +398,8 @@ class CTextNavigate
     int             FKeyCode;
     int             FPrevKeyCode;
     TEditorState    FEditorState;
-    char            FIncrementalSearchBuffer[MAX_INCREMENTAL_SEARCH_LENGTH];
-    char          * FIncrementalSearchBufferEnd;
+    wchar_t         FIncrementalSearchBuffer[MAX_INCREMENTAL_SEARCH_LENGTH];
+    wchar_t       * FIncrementalSearchBufferEnd;
 
     CXMLFile        XMLFile;
     CXMLFilesColl   XMLFilesColl;
@@ -414,15 +421,15 @@ class CTextNavigate
     SClass        * Class;
     SMethod       * Method;
 
-    int strreplace(char *str, const char *pattern, const char *value);
+    int strreplace(WideString & str, WideString const  &pattern, WideString const & value);
     void ReplaceSpecRegSymbols(char *str);
-    int GetMatch(char *Match, const SMatches &m, const char *str, int n);
+    int GetMatch(WideString & Match, const SMatches &m, WideString const & str, int n);
     void DrawTitle();
 
-    int do_search(const char* String, const char* substr, bool SearchUp, int begin_word_pos, int &CurLine, bool SearchSelection, bool casesensitive);
+    int do_search(WideString const & string, WideString const & substr, bool SearchUp, int begin_word_pos, int &CurLine, bool SearchSelection, bool casesensitive);
 
-    bool SearchBackward(char const *RegExpr, int &CurLine, char *&StringText, SMatches &m);
-    bool SearchForward(char const *RegExpr, int &CurLine, char *&StringText, SMatches &m);
+    bool SearchBackward(WideString const & RegExpr, int &CurLine, WideString & StringText, SMatches &m);
+    bool SearchForward(WideString const & RegExpr, int &CurLine, WideString & StringText, SMatches &m);
     bool IsInClassDefinition(int CurLine);
     bool IsGlobalMethodImplementation(int CurLine);
     int SearchForMethodImplementation(int &CurLine, int GlobalProc);
@@ -463,7 +470,7 @@ class CTextNavigate
 
 struct FFarMenuItem
 {
-  AnsiString  Text;
+  WideString  Text;
   int         Selected;
   int         Checked;
   int         Separator;
