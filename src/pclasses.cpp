@@ -5,9 +5,9 @@
 #include "guids.h"
 #include "Headers.c/plugin.hpp"
 
-const static char s_MethodType[] = "%MethodType%";
-const static char s_MethodName[] = "%MethodName%";
-const static char s_ClassName[] = "%ClassName%";
+const static wchar_t s_MethodType[]   = L"%MethodType%";
+const static wchar_t s_MethodName[]   = L"%MethodName%";
+const static wchar_t s_ClassName[]    = L"%ClassName%";
 const static char s_RegWord[] = "(\\w+)";
 const static char s_Definition[] = "Definition";
 const static char s_End[] = "End";
@@ -214,7 +214,7 @@ int CTextNavigate::ProcessEditorInput(const INPUT_RECORD* Rec)
                            (KEY_BS == c) ||
                            ArrowKeysPressed))
       {
-        if (strlen(FIncrementalSearchBuffer) < MAX_INCREMENTAL_SEARCH_LENGTH)
+        if (wcslen(FIncrementalSearchBuffer) < MAX_INCREMENTAL_SEARCH_LENGTH)
         {
           if (!ArrowKeysPressed)
           {
@@ -245,7 +245,7 @@ int CTextNavigate::ProcessEditorInput(const INPUT_RECORD* Rec)
             bool Upward = ArrowKeysPressed ? KeyCode == KEY_UP || KeyCode == KEY_LEFT : false;
             int CurPos = EInfo.CurPos && !Upward ? EInfo.CurPos - 1 : EInfo.CurPos - 1;
             int pos_found;
-            if ((pos_found = do_search(w2a(EStr.StringText).c_str(), FIncrementalSearchBuffer,
+            if ((pos_found = do_search(EStr.StringText, FIncrementalSearchBuffer,
                                        Upward, CurPos, CurLine, true, false)) != -1)
             {
               //обнулим код клавиши, для того чтобы запретить плагину ECompl
@@ -255,7 +255,7 @@ int CTextNavigate::ProcessEditorInput(const INPUT_RECORD* Rec)
               ((INPUT_RECORD*)Rec)->Event.KeyEvent.wVirtualScanCode = 0;
               //((INPUT_RECORD*)Rec)->Event.KeyEvent.uChar.AsciiChar = '\0';
               //((INPUT_RECORD*)Rec)->Event.KeyEvent.wRepeatCount = 0;
-              int Len = strlen(FIncrementalSearchBuffer);
+              int Len = wcslen(FIncrementalSearchBuffer);
               SelectFound(CurLine, pos_found, Len);
               set_cursor_pos(pos_found + Len, CurLine, &EInfo);
             }
@@ -293,10 +293,7 @@ int CTextNavigate::ProcessEditorEvent(int Event, void* Param)
       {
         id = EInfo.EditorID;
         XMLFilesColl.Add(id, XMLFile);
-        size_t      fileNameSize=Info.EditorControl(-1,ECTL_GETFILENAME,0,0);
-        WideString  fileName(fileNameSize + 1, '\0');
-        
-        Info.EditorControl(-1, ECTL_GETFILENAME, fileNameSize, const_cast<LPWSTR> (fileName.c_str()));
+        WideString  fileName = getEditorFilename(Info);
 
         if(!wcsrchr(fileName.c_str(), L':'))
         {
@@ -366,16 +363,16 @@ int CTextNavigate::processCtrlAltUpDown(int FKeyCode, int FPrevKeyCode)
   if (!Info.EditorControl(-1, ECTL_GETSTRING, 0, &EStr))
     return 0;
 
-  char *String = (char *)EStr.StringText;
+  WideString    string (EStr.StringText);
+  bool          SearchSelection = plugin_options.b_searchselection && (EInfo.BlockType == BTYPE_STREAM);
 
-  bool SearchSelection = plugin_options.b_searchselection && (EInfo.BlockType == BTYPE_STREAM);
   //если курсор стоит сразу после слова, ищем его
   if (!SearchSelection && (mx <= EStr.StringLength))
   {
     //if (mx && ((String[mx] == ' ') || (mx == EStr.StringLength)) && is_char(String[mx-1]))
     if (mx &&
-        (!is_char(String[mx]) || (mx == EStr.StringLength)) &&
-        is_char(String[mx-1]))
+        (!is_char(string[mx]) || (mx == EStr.StringLength)) &&
+        is_char(string[mx-1]))
      mx--;
   }
   int begin_word_pos = mx;
@@ -390,13 +387,13 @@ int CTextNavigate::processCtrlAltUpDown(int FKeyCode, int FPrevKeyCode)
       egs.StringNumber = EInfo.BlockStartLine;
       if (!Info.EditorControl(-1, ECTL_GETSTRING, 0, &egs))
        return false;
-      String = (char *)egs.StringText;
+      string = egs.StringText;
       int SelLength = egs.SelEnd == -1 ? egs.StringLength : egs.SelEnd - egs.SelStart;
-      word = AnsiString(&String[egs.SelStart], &String[SelLength + 1]);
+      word = string.substr(egs.SelStart, SelLength);
     }
     else //выделим слово под курсором в массив word
-      if (begin_word_pos > EStr.StringLength || !get_word(word, String, begin_word_pos, EStr.StringLength, begin_word_pos))
-        word = "";
+      if (begin_word_pos > EStr.StringLength || !get_word(word, string, begin_word_pos, EStr.StringLength, begin_word_pos))
+        word = L"";
   }
 
   if (word.empty())
@@ -405,7 +402,7 @@ int CTextNavigate::processCtrlAltUpDown(int FKeyCode, int FPrevKeyCode)
     word = toLower(word);
 
   int pos_found;
-  if ((pos_found = do_search(String, word.c_str(), FKeyCode == VK_UP, begin_word_pos, CurLine, SearchSelection, plugin_options.b_casesensitive)) != -1)
+  if ((pos_found = do_search(string, word, FKeyCode == VK_UP, begin_word_pos, CurLine, SearchSelection, plugin_options.b_casesensitive)) != -1)
   {
     set_cursor_pos(pos_found, CurLine, &EInfo);
   }
@@ -413,15 +410,16 @@ int CTextNavigate::processCtrlAltUpDown(int FKeyCode, int FPrevKeyCode)
   return (pos_found != -1 ? 1 : 0);
 } //processCtrlAltUpDown
 
-int CTextNavigate::do_search(const char* String, const char* substr, bool SearchUp, int begin_word_pos, int &CurLine, bool SearchSelection, bool casesensitive)
+int CTextNavigate::do_search(WideString const & srcStr, WideString const & substr, bool SearchUp, int begin_word_pos, int &CurLine, bool SearchSelection, bool casesensitive)
 {
-  if (!substr) return -1;
+  if (substr.empty()) return -1;
   struct EditorInfo EInfo;
   if (!Info.EditorControl(-1, ECTL_GETINFO, 0, &EInfo))
     return -1;
 
-  int StringLength = strlen(String);
-  int strlen_word = strlen(substr);
+  WideString  string (srcStr);
+  int StringLength = string.length();
+  int strlen_word = substr.length();
   int search_pos = SearchUp ? begin_word_pos : begin_word_pos+1;
   bool borders_crossed = false; //признак зацикливания поиска
   int BeginLine = CurLine;
@@ -441,14 +439,12 @@ int CTextNavigate::do_search(const char* String, const char* substr, bool Search
       Info.EditorControl(-1, ECTL_SETPOSITION, 0, &esp);
       Info.EditorControl(-1, ECTL_GETSTRING, 0, &EStr);
       StringLength = EStr.StringLength;
-      static AnsiString   strHolder;
-      strHolder = w2a(EStr.StringText);
-      String = strHolder.c_str();
+      string = EStr.StringText;
       search_pos = SearchUp ? EStr.StringLength : 0;
     }
 
-    if ((pos_found = SearchUp ? QuickSearch_BW(String, substr, search_pos, strlen_word, SearchSelection, casesensitive != 0) :
-                                QuickSearch_FW(String, substr, StringLength, strlen_word, search_pos, SearchSelection, casesensitive != 0)) != -1)
+    if ((pos_found = SearchUp ? QuickSearch_BW(string, substr, search_pos, strlen_word, SearchSelection, casesensitive != 0) :
+                                QuickSearch_FW(string, substr, StringLength, strlen_word, search_pos, SearchSelection, casesensitive != 0)) != -1)
       break;
 
     if (BeginLine == CurLine && borders_crossed)
@@ -479,14 +475,11 @@ int CTextNavigate::processCtrlEnter(void)
   if (!Info.EditorControl(-1, ECTL_GETINFO, 0, &EInfo))
    return 0;
 
-  if (!XMLFilesColl.isIdPresent(EInfo.EditorID))
-    return 0;
-
   XMLFile = XMLFilesColl.Get(EInfo.EditorID);
-  if (!XMLFile.SearchPaths)
-    return 0;
-  //PSearchPaths SearchPaths = XMLFile->SearchPaths;
-  return (XMLFile->SearchPaths->ProcessCtrlEnter(XMLFile->Language));
+  //if (!XMLFile.SearchPaths)
+  //  return 0;
+  //PSearchPaths SearchPaths = XMLFile.SearchPaths;
+  return (XMLFile.SearchPaths.ProcessCtrlEnter(XMLFile.Language));
 } //processCtrlEnter
 
 int CTextNavigate::processCtrlShiftUpDown(int FKeyCode)
@@ -501,9 +494,9 @@ int CTextNavigate::processCtrlShiftUpDown(int FKeyCode)
   if (!Info.EditorControl(-1, ECTL_GETINFO, 0, &EInfo))
     return 0;
 
-  XMLFile = XMLFilesColl->Get(EInfo.EditorID);
-  if (!XMLFile)
-    return 0;
+  XMLFile = XMLFilesColl.Get(EInfo.EditorID);
+  //if (!XMLFile)
+  //  return 0;
 
   int LineFound = EInfo.CurLine, x_pos = 0;
 
@@ -520,30 +513,36 @@ int CTextNavigate::processCtrlShiftUpDown(int FKeyCode)
   return (LineFound != -1 ? 1 : 0);
 } //processCtrlShiftUpDown
 
-int CTextNavigate::strreplace(char *str, const char *pattern, const char *value)
+int CTextNavigate::strreplace(WideString & str, WideString const & pattern, WideString const & value)
 {
-  if (!str || !pattern || !value)
+  if (str.empty() || pattern.empty() || value.empty())
     return -1;
 
-  char *s = strstr(str, pattern);
-  if (!s)
+  //char *s = strstr(str, pattern);
+  //if (!s)
+  //  return -1;
+  
+  size_t          patternPos = str.find(pattern);
+  if (patternPos == std::wstring::npos)
     return -1;
+  wchar_t const *s = str.c_str() + patternPos;
 
   int n_roundbrackets = 0;
-  char *ch = str;
+  wchar_t const *ch = str.c_str();
   while (ch != s)
     if (*ch++ == '(') n_roundbrackets++;
-  if (*value == '(')
+  if (value[0] == '(')
     n_roundbrackets++;
-  else if (*pattern == '(')
+  else if (pattern[0] == '(')
     n_roundbrackets++;
 
-  int pattern_len = strlen(pattern); int value_len = strlen(value);
+  int pattern_len = pattern.length(); int value_len = value.length();
 
   if (pattern_len > value_len)
   {
-    strncpy(s, value, (int)value_len);
+    //strncpy(s, value, (int)value_len);
     strcpy(s + value_len, s + pattern_len);
+    str = str.substr(0, patternPos) + value + str.substr(patternPos + pattern_len);
   }
   else if (pattern_len < value_len)
   {
@@ -582,7 +581,7 @@ int CTextNavigate::SearchForMethodImplementation(int &CurLine, int GlobalProc)
 {
   DebugString(L" ========== SearchForMethodImplementation");
 
-  SLanguage* Language = XMLFile->Language;
+  SLanguage * Language = XMLFile.Language;
 
   if (!Language)
     return false;
@@ -599,7 +598,7 @@ int CTextNavigate::SearchForMethodImplementation(int &CurLine, int GlobalProc)
   if (!Method)
     return false;
 
-  if (!Method->Name || !Method->Implementation)
+  if (Method->Name.empty() || Method->Implementation.empty())
    return false;
 
   char MethodImplementation[200];
@@ -628,7 +627,7 @@ int CTextNavigate::SearchForMethodImplementation(int &CurLine, int GlobalProc)
 
   if (!GlobalProc)
   {
-    lstrcpyA(ClassDefinition, Class->Definition);
+    ClassDefinition = Class->Definition;
     strreplace(ClassDefinition, s_ClassName, ClassName);
   }
   return true;
@@ -638,7 +637,7 @@ bool CTextNavigate::SearchForMethodDefinition2(int &CurLine, bool GlobalProc)
 {
   DebugString(L" ========== SearchForMethodDefinition2");
 
-  SLanguage* Language = XMLFile->Language;
+  SLanguage* Language = XMLFile.Language;
 
   if (!Language)
     return false;
@@ -655,7 +654,7 @@ bool CTextNavigate::SearchForMethodDefinition2(int &CurLine, bool GlobalProc)
   if (!Method)
     return false;
 
-  lstrcpyA(MethodDefinition, Method->Definition);
+  MethodDefinition = Method->Definition;
 
   int MethodTypePos = strreplace(MethodDefinition, s_MethodType, Method->Type);
   MethodNamePos = strreplace(MethodDefinition, s_MethodName, Method->Name);
@@ -664,7 +663,8 @@ bool CTextNavigate::SearchForMethodDefinition2(int &CurLine, bool GlobalProc)
   if (!MethodDefinition)
     return false;
 
-  SMatches m; char *StringText;
+  SMatches m; 
+  WideString StringText;
   if (!SearchBackward(MethodDefinition, CurLine, StringText, m))
     return false;
 
@@ -674,7 +674,7 @@ bool CTextNavigate::SearchForMethodDefinition2(int &CurLine, bool GlobalProc)
   if (!GlobalProc)
   {
     //ищем имя класса
-    lstrcpyA(ClassDefinition, Class->Definition);
+    ClassDefinition = Class->Definition;
     int ClassNamePos = strreplace(ClassDefinition, s_ClassName, Class->Name);
 
     if (!SearchBackward(ClassDefinition, CurLine, StringText, m))
@@ -682,7 +682,7 @@ bool CTextNavigate::SearchForMethodDefinition2(int &CurLine, bool GlobalProc)
 
     GetMatch(ClassName, m, StringText, ClassNamePos);
 
-    if (!*ClassName || !Method->Implementation)
+    if (ClassName.empty() || Method->Implementation.empty())
      return false;
   }
 
@@ -715,7 +715,7 @@ bool CTextNavigate::SearchForMethodImplementation2(int &CurLine, int &x_pos)
   return false;
 } //SearchForMethodImplementation2
 
-bool CTextNavigate::SearchBackward(char const *RegExpr, int &CurLine, char *&StringText, SMatches &m)
+bool CTextNavigate::SearchBackward(WideString const & RegExpr, int &CurLine, WideString & StringText, SMatches &m)
 {
   if (!reg.setRE(asStringPtr(RegExpr).get()))
     return false;
@@ -744,7 +744,7 @@ bool CTextNavigate::SearchBackward(char const *RegExpr, int &CurLine, char *&Str
   return (esp.CurLine != -1);
 }
 
-bool CTextNavigate::SearchForward(char const *RegExpr, int &CurLine, char *&StringText, SMatches &m)
+bool CTextNavigate::SearchForward(WideString const & RegExpr, int &CurLine, WideString & StringText, SMatches &m)
 {
   if (!reg.setRE(asStringPtr(RegExpr).get()))
     return false;
@@ -777,7 +777,7 @@ bool CTextNavigate::SearchForward(char const *RegExpr, int &CurLine, char *&Stri
 
 bool CTextNavigate::IsInClassDefinition(int CurLine)
 {
-  SLanguage* Language = XMLFile->Language;
+  SLanguage* Language = XMLFile.Language;
 
   if (!Language)
     return false;
@@ -787,10 +787,11 @@ bool CTextNavigate::IsInClassDefinition(int CurLine)
 
   int Beg = CurLine;
   //ищем имя класса
-  lstrcpyA(ClassDefinition, Class->Definition);
+  ClassDefinition = Class->Definition;
   int ClassNamePos = strreplace(ClassDefinition, s_ClassName, Class->Name);
 
-  SMatches m; char *StringText;
+  SMatches    m; 
+  WideString  StringText;
   if (!SearchBackward(ClassDefinition, CurLine, StringText, m))
     return false;
 
@@ -883,7 +884,7 @@ int CTextNavigate::ShowPluginMenu()
   if (!Info.EditorControl(-1, ECTL_GETINFO, 0, &EInfo))
     return 0;
 
-  bool IsSimpleMenu = !XMLFile->Language;
+  bool IsSimpleMenu = !XMLFile.Language;
   static const int MItemsSimple[] = {
     MFindNext, MFindPrev, MOpenFile, 
     MAddBookmark, MMoveToTheNextBookmark, MMoveToThePrevBookmark, MCleanAllBookmarks, 
@@ -917,7 +918,7 @@ int CTextNavigate::ShowPluginMenu()
 
   int selected;
 
-  if (!XMLFile->Language)
+  if (!XMLFile.Language)
   {
     do
     {
@@ -1070,7 +1071,7 @@ throw "TODO";
   InitUnion();
 } //config_plugin
 
-int CTextNavigate::GetMatch(char *Match, const SMatches &m, const char *str, int n)
+int CTextNavigate::GetMatch(WideString & Match, const SMatches &m, WideString const & str, int n)
 {
   if (n == -1) return (-1);
   int Len = m.e[n] - m.s[n];
@@ -1084,7 +1085,7 @@ void CTextNavigate::AddBookmark()
   struct EditorInfo EInfo;
   if (!Info.EditorControl(-1, ECTL_GETINFO, 0, &EInfo))
     return;
-  TWindowData *window = windows->Get(EInfo.EditorID);
+  TWindowData *window = windows.Get(EInfo.EditorID);
   if (window)
     window->AddBookmark(EInfo.CurLine, EInfo.CurPos, EInfo.TopScreenLine, EInfo.LeftPos);
 } //AddBookmark
@@ -1095,28 +1096,28 @@ void CTextNavigate::MoveToNextBookmark(bool Next)
   if (!Info.EditorControl(-1, ECTL_GETINFO, 0, &EInfo))
     return;
 
-  TWindowData *window = windows->Get(EInfo.EditorID);
+  TWindowData *window = windows.Get(EInfo.EditorID);
   if (window)
     window->MoveToNextBookmark(Next);
 } //MoveToNextBookmark
 
 void CTextNavigate::SaveBookmarks(int id)
 {
-  TWindowData *window = windows->Get(id);
+  TWindowData *window = windows.Get(id);
   if (window)
     window->SaveBookmarks();
 } //SaveBookmarks
 
 void CTextNavigate::LoadBookmarks(int id)
 {
-  TWindowData *window = windows->Get(id);
+  TWindowData *window = windows.Get(id);
   if (window)
     window->LoadBookmarks();
 } //LoadBookmarks
 
 void CTextNavigate::ClearBookmarks(int id, bool RegistryAlso)
 {
-  TWindowData *window = windows->Get(id);
+  TWindowData *window = windows.Get(id);
   if (window)
     window->clear(RegistryAlso);
 } //ClearBookmarks
@@ -1135,7 +1136,7 @@ void CTextNavigate::Push()
   struct EditorInfo EInfo;
   if (!Info.EditorControl(-1, ECTL_GETINFO, 0, &EInfo))
     return;
-  TWindowData *window = windows->Get(EInfo.EditorID);
+  TWindowData *window = windows.Get(EInfo.EditorID);
   if (window)
     window->PushBookmark(EInfo.CurLine, EInfo.CurPos, EInfo.TopScreenLine, EInfo.LeftPos);
 } //Push
@@ -1145,7 +1146,7 @@ void CTextNavigate::Pop()
   struct EditorInfo EInfo;
   if (!Info.EditorControl(-1, ECTL_GETINFO, 0, &EInfo))
     return;
-  TWindowData *window = windows->Get(EInfo.EditorID);
+  TWindowData *window = windows.Get(EInfo.EditorID);
   if (window)
     window->PopBookmark();
 } //Pop
@@ -1593,8 +1594,8 @@ int CSearchPaths::get_filename(void)
           if (file_name[i] == '/')
             file_name[i] = '\\';
 
-        char const *beg = file_name.c_str();
-        while (char const *end = strchr(beg, '\\'))
+        wchar_t const *beg = file_name.c_str();
+        while (wchar_t const *end = wcschr(beg, '\\'))
           beg = end + 1;
 
         //- если всё просто и имя без пути -
@@ -1637,16 +1638,16 @@ int CSearchPaths::find_file(char const *ExcludedFileExts)
   for (int m2 = 0; m2 < 2; m2++)
   {
     // первый проход на точное соотв. второй - any ext.
-    for (int i = 0; i < pathways->count(); i++)
+    for (int i = 0; i < pathways.count(); i++)
     {
-      if (!SetCurrentDirectory(a2w(pathways->get(i)).c_str()))
+      if (!SetCurrentDirectory(pathways.get(i).c_str()))
         continue;
 
       if (!find_file_path.empty())
-        if (!SetCurrentDirectory(a2w(find_file_path).c_str()))
+        if (!SetCurrentDirectory(find_file_path.c_str()))
           continue;
 
-      if ((HF = FindFirstFile(a2w(find_file_name).c_str(), &FD)) == INVALID_HANDLE_VALUE)
+      if ((HF = FindFirstFile(find_file_name.c_str(), &FD)) == INVALID_HANDLE_VALUE)
         continue;
 
       do
@@ -1658,35 +1659,35 @@ int CSearchPaths::find_file(char const *ExcludedFileExts)
 
         wcsncpy(name, FD.cFileName, MAX_PATH);
 
-        if (AlreadyFound(pathways->get(i), w2a(name).c_str()))
+        if (AlreadyFound(pathways.get(i), w2a(name).c_str()))
           continue;
 
         if (ExcludedFileExts && FSF.ProcessName(a2w(ExcludedFileExts).c_str(), name, 0, PN_CMPNAMELIST|PN_SKIPPATH))
           continue;
 
-        was_found->insert(w2a(name).c_str(), i);
+        was_found.insert(w2a(name).c_str(), i);
         //was_found[wf_count]->FileSize = FD.nFileSizeLow;
-      } while (FindNextFile(HF, &FD) && was_found->count() < MAX_FOUND_COUNT);
+      } while (FindNextFile(HF, &FD) && was_found.count() < MAX_FOUND_COUNT);
       FindClose(HF);
     }//for
 
-    if (!was_found->count()) find_file_name += ".*";
+    if (!was_found.count()) find_file_name += ".*";
     else break;
   }//for
 
-  SetCurrentDirectory(a2w(last_path).c_str());
-  if (!was_found->count())
+  SetCurrentDirectory(last_path.c_str());
+  if (!was_found.count())
     ClearAfterSearch();
-  return was_found->count();
+  return was_found.count();
 } //find_file
 
 int CSearchPaths::ShowSelectFileMenu()
 {
-  AutoPtr<FFarMenuItem, VectorPtr> fmi (new FFarMenuItem[was_found->count()]);
-  for (int i = 0; i < was_found->count(); i++)
+  AutoPtr<FFarMenuItem, VectorPtr> fmi (new FFarMenuItem[was_found.count()]);
+  for (int i = 0; i < was_found.count(); i++)
   {
     wchar_t tmp_str[MAX_PATH];
-    FarSprintf(tmp_str, L"%-12s in %s", was_found->Item(i)->file_name, pathways->get(was_found->Item(i)->path_index));
+    FarSprintf(tmp_str, L"%-12s in %s", was_found.Item(i)->file_name, pathways.get(was_found.Item(i)->path_index));
     //fmi[i].Text = new char[MAX_PATH];
     if (i < 9)
       //FarSprintf(fmi[i].Text, "&%d %s", i + 1, tmp_str);
@@ -1698,7 +1699,7 @@ int CSearchPaths::ShowSelectFileMenu()
       //FarSprintf(fmi[i].Text, "%-2s%s", "", tmp_str);
       fmi[i].Text = "  " + w2a(tmp_str);
   }
-  AutoPtr<CPluginMenu> PluginMenu (new CPluginMenu(was_found->count(), fmi));
+  AutoPtr<CPluginMenu> PluginMenu (new CPluginMenu(was_found.count(), fmi));
 
   wchar_t msgSelect[256], msgTotal[256];
   const wchar_t *PMStrings[] =
@@ -1708,7 +1709,7 @@ int CSearchPaths::ShowSelectFileMenu()
   };
 
   FarSprintf(msgSelect, PMStrings[0], find_file_name);
-  FarSprintf(msgTotal, PMStrings[1], was_found->count());
+  FarSprintf(msgTotal, PMStrings[1], was_found.count());
 
   int menu_code = PluginMenu->Execute(msgSelect, msgTotal);
 
@@ -1717,27 +1718,27 @@ int CSearchPaths::ShowSelectFileMenu()
   return (menu_code);
 } //ShowSelectFileMenu
 
-int CSearchPaths::get_full_file_name(AnsiString & dest, int pos)
+int CSearchPaths::get_full_file_name(WideString & dest, int pos)
 {
-  return (get_full_file_name(dest, was_found->Item(pos)));
+  return (get_full_file_name(dest, was_found.Item(pos)));
 } //get_full_file_name
 
-int CSearchPaths::get_full_file_name(AnsiString & dest, LPFND fnd)
+int CSearchPaths::get_full_file_name(WideString & dest, LPFND fnd)
 {
   if (fnd->file_path)
     dest = fnd->file_path;
   else
-    dest = pathways->get(fnd->path_index);
+    dest = pathways.get(fnd->path_index);
 
   if (!find_file_path.empty())
   {
     if (dest[dest.length()-1] != '\\')
-      dest += "\\";
+      dest += L"\\";
     dest += find_file_path;
   }
 
   if (dest[dest.length() - 1] != '\\')
-   dest += "\\";
+   dest += L"\\";
 
   dest += fnd->file_name;
 
@@ -1754,11 +1755,11 @@ int CSearchPaths::AlreadyFound(char const *path, char const *file_name)
   if (get_full_file_name(cur_file_name, &fnd) == 0)
     return false;
 
-  for (int i = 0; i < was_found->count(); i++)
+  for (int i = 0; i < was_found.count(); i++)
   {
     WideString file_name;
 
-    if (get_full_file_name(file_name, was_found->Item(i)) == 0)
+    if (get_full_file_name(file_name, was_found.Item(i)) == 0)
       return false;
 
     if ((file_name.length() == cur_file_name.length()) &&
@@ -1771,13 +1772,13 @@ int CSearchPaths::AlreadyFound(char const *path, char const *file_name)
 void CSearchPaths::ResolveEnvVars(void)
 {
 #ifdef _DEBUG
-  FarSprintf(tmp_str, " ===== ResolveEnvVars::count = %d; EnvVarsCount = %d", pathways->count(), EnvVarsCount);
+  FarSprintf(tmp_str, L" ===== ResolveEnvVars::count = %d; EnvVarsCount = %d", pathways.count(), EnvVarsCount);
   DebugString(tmp_str);
 #endif
 
-  for (int i = 0; i < pathways->count(); i++)
+  for (int i = 0; i < pathways.count(); i++)
   {
-    char const *pw = pathways->get(i);
+    wchar_t const *pw = pathways.get(i).c_str();
     if (!pw) continue;
 
     if ((*pw == '$') && (pw[1] == '(')) //нашли специальную переменную
@@ -1795,7 +1796,7 @@ void CSearchPaths::ResolveEnvVars(void)
           char *pathway = new char[EnvVarValueLen + pw_len + 1];
           lstrcpyA(pathway, env_vars[j].EnvVarValue);
           strcat(pathway, &pw[EnvVarLen + 3]);
-          pathways->insert(i, pathway);
+          pathways.insert(i, pathway);
           pw = pathway;
         }
       }//for
@@ -1824,36 +1825,41 @@ void CSearchPaths::FindAllSubDirs(char const *RootDir)
       {
         char *pathway = new char[strlen(RootDir) + lstrlen(FD.cFileName) + 3];
         strcat(strcat(strcpy(pathway, RootDir), "\\"), w2a(FD.cFileName).c_str());
-        pathways->add(pathway);
+        pathways.add(pathway);
         FindAllSubDirs(pathway);
       }
-    } while (FindNextFile(HF, &FD) && pathways->count() < MAX_PATHWAYS_COUNT);
+    } while (FindNextFile(HF, &FD) && pathways.count() < MAX_PATHWAYS_COUNT);
     FindClose(HF);
   }
   SetCurrentDirectory(a2w(RootDir).c_str());
 } //FindAllSubDirs
 
-AnsiString const CSearchPaths::get_def_path(void)
+WideString const CSearchPaths::get_def_path(void)
 {
-  AnsiString def_path;
+  WideString def_path;
 
   struct EditorInfo EInfo;
-  Info.EditorControl(ECTL_GETINFO, &EInfo);
+  Info.EditorControl(-1, ECTL_GETINFO, 0, &EInfo);
 
-  char *c, *p = (char *)EInfo.FileName;
-  while ((c = strchr(p, '\\')) != NULL)
-    p = ++c;
+  WideString  fileName = getEditorFilename(Info);
+  size_t      slashPos = fileName.rfind('\\');
 
-  if (p == EInfo.FileName)
+  //char *c, *p = (char *)EInfo.FileName;
+  //while ((c = strchr(p, '\\')) != NULL)
+  //  p = ++c;
+
+  //if (p == EInfo.FileName)
+  if (slashPos == std::string::npos)
   {
     wchar_t   buf[MAX_PATH];
     if (GetCurrentDirectory(MAX_PATH-1, buf) != 0)
-      def_path = w2a(buf).c_str();
+      def_path = buf;
       
     return def_path;
   }
 
-  def_path = AnsiString(EInfo.FileName, (size_t)(p-1-EInfo.FileName) + 1);
+  def_path = fileName.substr(0, slashPos);
+
   return def_path;
 } //get_def_path
 
@@ -1921,10 +1927,6 @@ SClass::SClass(PSgmlEl elem)
 SClass::~SClass()
 {
   delete Method;
-
-  delete End;
-  delete Definition;
-  delete Name;
 }
 
 /*******************************************************************************
@@ -1972,21 +1974,23 @@ FarMenuItem *CPluginMenu::Setup(int num, const FFarMenuItem &mi)
   FarMenuItem *p = Item(num);
   if (!p) return NULL;
 
-  lstrcpyA(p->Text, mi.Text ? mi.Text : "");
-  p->Selected = mi.Selected;
-  p->Checked = mi.Checked;
-  p->Separator = mi.Separator;
+  lstrcpyA(p->Text, mi.Text.c_str());
+  //p->Selected = mi.Selected;
+  //p->Checked = mi.Checked;
+  //p->Separator = mi.Separator;
+  p->Flags = (mi.Selected * MIF_SELECTED) | (mi.Checked * MIF_CHECKED) | (mi.Separator * MIF_SEPARATOR);
 
   return p;
 }
 
 int CPluginMenu::Execute(WideString const &Title, WideString const &Bottom)
 {
-  return Info.Menu(Info.ModuleNumber, -1, -1, 0, FMENU_AUTOHIGHLIGHT|FMENU_WRAPMODE, Title,
-               Bottom, //bottom
-               "Contents", //helptopic
-               NULL, NULL, //breakkeys, breakcode
-               (FarMenuItem *)Items(), Count());
+  return Info.Menu(&MainGuid, &MenuGuid, -1, -1, 0, FMENU_AUTOHIGHLIGHT|FMENU_WRAPMODE, 
+                   Title.c_str(),
+                   Bottom.c_str(), //bottom
+                   L"Contents", //helptopic
+                   NULL, NULL, //breakkeys, breakcode
+                   (FarMenuItem *)Items(), Count());
 }
 
 /*******************************************************************************
