@@ -26,7 +26,7 @@ typedef struct _FOUND
 } FOUND, *LPFND;
 
 //#define MAX_ENV_VARS 16
-typedef struct ENV_VAR
+struct ENV_VAR
 {
   WideString    EnvVar;
   WideString    EnvVarValue;
@@ -62,15 +62,14 @@ class CFoundDataArray : public CRefArray<_FOUND>
       cleanup();
     }
 
-    void insert(char const* FileName, int index)
+    void insert(WideString const &FileName, int index)
     {
-      size_t len = strlen(FileName);
-      _FOUND* item = Item(m_count);
-      item->file_name = new char[len + 1];
-      lstrcpyA((char*)item->file_name, FileName);
-      item->file_path = NULL;
+      _FOUND* item = Item(m_count++);
+      item->file_name = FileName;
+      item = Item(index);
       item->path_index = index;
-      m_count++;
+      item->file_path.clear();
+      item->path_index = -1;
     }
 
     void cleanup()
@@ -152,7 +151,7 @@ class CSearchPaths
     void free_find_data();
     void PrepareForSearch();
     void MakePathWays();
-    void FindAllSubDirs(char const *RootDir);
+    void FindAllSubDirs(WideString const &RootDir);
  public:
    CSearchPaths(PSgmlEl elem);
    ~CSearchPaths();
@@ -422,7 +421,7 @@ class CTextNavigate
     SMethod       * Method;
 
     int strreplace(WideString & str, WideString const  &pattern, WideString const & value);
-    void ReplaceSpecRegSymbols(char *str);
+    void ReplaceSpecRegSymbols(WideString &str);
     int GetMatch(WideString & Match, const SMatches &m, WideString const & str, int n);
     void DrawTitle();
 

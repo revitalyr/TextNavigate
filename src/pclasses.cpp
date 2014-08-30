@@ -525,10 +525,10 @@ int CTextNavigate::strreplace(WideString & str, WideString const & pattern, Wide
   //if (!s)
   //  return -1;
   
-  size_t          patternPos = str.find(pattern);
-  if (patternPos == std::wstring::npos)
+  size_t          pattern_pos = str.find(pattern);
+  if (pattern_pos == std::wstring::npos)
     return -1;
-  wchar_t const *s = str.c_str() + patternPos;
+  wchar_t const *s = str.c_str() + pattern_pos;
 
   int n_roundbrackets = 0;
   wchar_t const *ch = str.c_str();
@@ -539,28 +539,13 @@ int CTextNavigate::strreplace(WideString & str, WideString const & pattern, Wide
   else if (pattern[0] == '(')
     n_roundbrackets++;
 
-  int pattern_len = pattern.length(); int value_len = value.length();
-
-  if (pattern_len > value_len)
-  {
-    //strncpy(s, value, (int)value_len);
-    strcpy(s + value_len, s + pattern_len);
-    str = str.substr(0, patternPos) + value + str.substr(patternPos + pattern_len);
-  }
-  else if (pattern_len < value_len)
-  {
-    int s_len = strlen(s);
-    memmove(s + value_len, s + pattern_len, s_len - pattern_len + 1);
-    strncpy(s, value, (int)value_len);
-    s[s_len + value_len - pattern_len+1] = 0;
-  }
-  else
-    strncpy(s, value, (int)value_len);
+  int pattern_len = pattern.length(); 
+  str = str.substr(0, pattern_pos) + value + str.substr(pattern_pos + pattern_len);
 
   return n_roundbrackets;
 } //strreplace
 
-void CTextNavigate::ReplaceSpecRegSymbols(char *str)
+void CTextNavigate::ReplaceSpecRegSymbols(WideString &str)
 {
   const static char specSymbols[] = "()[]{}|";
 
@@ -604,9 +589,8 @@ int CTextNavigate::SearchForMethodImplementation(int &CurLine, int GlobalProc)
   if (Method->Name.empty() || Method->Implementation.empty())
    return false;
 
-  char MethodImplementation[200];
-  ZeroMemory(MethodImplementation, 200);
-  lstrcpyA(MethodImplementation, Method->Implementation);
+  WideString  MethodImplementation;
+  MethodImplementation = Method->Implementation;
   int MethodTypePos = strreplace(MethodImplementation, s_MethodType, Method->Type);
 
   int ClassNamePos = -1;
@@ -614,7 +598,8 @@ int CTextNavigate::SearchForMethodImplementation(int &CurLine, int GlobalProc)
     ClassNamePos = strreplace(MethodImplementation, s_ClassName,  Class->Name);
   MethodNamePos = strreplace(MethodImplementation, s_MethodName, Method->Name);
 
-  SMatches m; char *StringText;
+  SMatches    m; 
+  WideString  StringText;
   if (!SearchBackward(MethodImplementation, CurLine, StringText, m))
     return false;
 
@@ -663,7 +648,7 @@ bool CTextNavigate::SearchForMethodDefinition2(int &CurLine, bool GlobalProc)
   MethodNamePos = strreplace(MethodDefinition, s_MethodName, Method->Name);
 
 
-  if (!MethodDefinition)
+  if (MethodDefinition.empty())
     return false;
 
   SMatches m; 
@@ -689,8 +674,7 @@ bool CTextNavigate::SearchForMethodDefinition2(int &CurLine, bool GlobalProc)
      return false;
   }
 
-  ZeroMemory(MethodImplementation, 200);
-  lstrcpyA(MethodImplementation, Method->Implementation);
+  MethodImplementation = Method->Implementation;
   //ищем строку MethodType ClassName.MethodName
   ReplaceSpecRegSymbols(MethodType);
 
@@ -1774,47 +1758,51 @@ int CSearchPaths::AlreadyFound(char const *path, char const *file_name)
 
 void CSearchPaths::ResolveEnvVars(void)
 {
+  using std::wregex;
+  using std::regex_search;
+  using std::regex_replace;
+  using std::find_if;
 #ifdef _DEBUG
   FarSprintf(tmp_str, L" ===== ResolveEnvVars::count = %d; EnvVarsCount = %d", pathways.count(), EnvVarsCount);
   DebugString(tmp_str);
 #endif
 
-  std::regex          reSpec ("([$()])");
+  wregex        specRE (LR"(\)|\(|\$)");
+  wregex        substRE (LR"(\$\(([^)]+)\))");
+  std::wsmatch  match;
+
   for (int i = 0; i < pathways.count (); i++) {
-    WideString const &pw = pathways.get (i);
-    if (pw.empty ()) continue;
+    WideString  pw = pathways.get (i);
 
-    if ((pw [0] == '$') && (pw [1] == '(')) { //нашли специальную переменную
-      std::regex        re (w2a (pw));
+    if (pw.empty ()) 
+      continue;
 
-      //  for (int j = EnvVarsCount - 1; j >= 0; j--)
-      //  {
-      //    int EnvVarLen = env_vars[j].EnvVar.length();
+    if (regex_search (pw, match, substRE)) {
+      WideString                var_name = match[1];
+      ENV_VARS::const_iterator  it = find_if(env_vars.begin(), env_vars.end(), 
+                                             [&var_name](ENV_VAR const &env_var) {return env_var.EnvVar == var_name;});
 
-      //    if (!FSF.LStrnicmp(pw.data() + 2, env_vars[j].EnvVar.c_str(), EnvVarLen)  &&
-      //         pw[EnvVarLen + 2] == ')')
-      //    {
-      //      //заменим $(ENVVAR) на EnvVarValue
-      //      size_t EnvVarValueLen = env_vars[j].EnvVarValue.length();
-      //      size_t pw_len = strlen(&pw[EnvVarLen + 3]);
-      //      char *pathway = new char[EnvVarValueLen + pw_len + 1];
-      //      lstrcpyA(pathway, env_vars[j].EnvVarValue);
-      //      strcat(pathway, &pw[EnvVarLen + 3]);
-      //      pathways.insert(i, pathway);
-      //      pw = pathway;
-      //    }
-      //  }//for
+      if (it == env_vars.end())
+        continue;
+
+      WideString      forVarRE = regex_replace(pw, specRE, LR"(\$&)");
+      wregex          varRE(forVarRE);
+
+      pw = regex_replace(pw, varRE, it->EnvVarValue);
     }//if
 
-    if (char *spw = const_cast<char *> (strstr (pw, "\\..."))) //нашли идентификатор подкаталогов
+    //if (char *spw = const_cast<char *> (strstr (pw, "\\..."))) //нашли идентификатор подкаталогов
+    size_t    spw = pw.find(L"\\..."/*???*/);
+    if (spw != WideString::npos)
     {
-      *spw = 0;
+      //*spw = 0;
+      pw.resize(spw);
       FindAllSubDirs (pw);
     }
   }//for
 } //ResolveEnvVars
 
-void CSearchPaths::FindAllSubDirs(char const *RootDir)
+void CSearchPaths::FindAllSubDirs(WideString const &RootDir)
 {
   HANDLE HF;
   WIN32_FIND_DATA FD;
