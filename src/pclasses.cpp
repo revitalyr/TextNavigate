@@ -1,5 +1,8 @@
 //pclasses.cpp
 #include "pclasses.h"
+
+#include <regex>
+
 #include "farkeys.hpp"
 
 #include "guids.h"
@@ -1776,36 +1779,37 @@ void CSearchPaths::ResolveEnvVars(void)
   DebugString(tmp_str);
 #endif
 
-  for (int i = 0; i < pathways.count(); i++)
-  {
-    wchar_t const *pw = pathways.get(i).c_str();
-    if (!pw) continue;
+  std::regex          reSpec ("([$()])");
+  for (int i = 0; i < pathways.count (); i++) {
+    WideString const &pw = pathways.get (i);
+    if (pw.empty ()) continue;
 
-    if ((*pw == '$') && (pw[1] == '(')) //нашли специальную переменную
-    {
-      for (int j = EnvVarsCount - 1; j >= 0; j--)
-      {
-        int EnvVarLen = strlen(env_vars[j].EnvVar);
+    if ((pw [0] == '$') && (pw [1] == '(')) { //нашли специальную переменную
+      std::regex        re (w2a (pw));
 
-        if (!FSF.LStrnicmp(&pw[2], env_vars[j].EnvVar, (int)EnvVarLen)  &&
-             pw[EnvVarLen + 2] == ')')
-        {
-          //заменим $(ENVVAR) на EnvVarValue
-          crt::size_t EnvVarValueLen = strlen(env_vars[j].EnvVarValue);
-          crt::size_t pw_len = strlen(&pw[EnvVarLen + 3]);
-          char *pathway = new char[EnvVarValueLen + pw_len + 1];
-          lstrcpyA(pathway, env_vars[j].EnvVarValue);
-          strcat(pathway, &pw[EnvVarLen + 3]);
-          pathways.insert(i, pathway);
-          pw = pathway;
-        }
-      }//for
+      //  for (int j = EnvVarsCount - 1; j >= 0; j--)
+      //  {
+      //    int EnvVarLen = env_vars[j].EnvVar.length();
+
+      //    if (!FSF.LStrnicmp(pw.data() + 2, env_vars[j].EnvVar.c_str(), EnvVarLen)  &&
+      //         pw[EnvVarLen + 2] == ')')
+      //    {
+      //      //заменим $(ENVVAR) на EnvVarValue
+      //      size_t EnvVarValueLen = env_vars[j].EnvVarValue.length();
+      //      size_t pw_len = strlen(&pw[EnvVarLen + 3]);
+      //      char *pathway = new char[EnvVarValueLen + pw_len + 1];
+      //      lstrcpyA(pathway, env_vars[j].EnvVarValue);
+      //      strcat(pathway, &pw[EnvVarLen + 3]);
+      //      pathways.insert(i, pathway);
+      //      pw = pathway;
+      //    }
+      //  }//for
     }//if
-    
-    if (char *spw = const_cast<char *> (strstr(pw, "\\..."))) //нашли идентификатор подкаталогов
+
+    if (char *spw = const_cast<char *> (strstr (pw, "\\..."))) //нашли идентификатор подкаталогов
     {
       *spw = 0;
-      FindAllSubDirs(pw);
+      FindAllSubDirs (pw);
     }
   }//for
 } //ResolveEnvVars

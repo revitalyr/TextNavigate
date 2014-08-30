@@ -25,7 +25,7 @@ typedef struct _FOUND
   WideString    file_path;
 } FOUND, *LPFND;
 
-#define MAX_ENV_VARS 16
+//#define MAX_ENV_VARS 16
 typedef struct ENV_VAR
 {
   WideString    EnvVar;
