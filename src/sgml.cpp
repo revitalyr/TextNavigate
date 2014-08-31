@@ -12,6 +12,8 @@
 #include "sgml.h"
 #include "TextNavigate.h"
 
+#include "Headers.c/plugin.hpp"
+
 bool inline isspace(char c)
 {
   if (c == 0x20 || c == '\t' || c == '\r' || c == '\n') return true;
@@ -196,8 +198,8 @@ int ls, le, rs, re, empty;
           int len = strlen(Parent->name);
           if (len != i-j) continue;
           if (Parent->type != ESINGLEEL ||
-            //strnicmp((char*)src+j, Parent->name, len)) continue;
-            FSF.LStrnicmp((char*)src+j, Parent->name, (int)len)) continue;
+            strnicmp(src+j, Parent->name, len)) continue;
+            //FSF.LStrnicmp(src+j, Parent->name, (int)len)) continue;
 
           break;
         };
@@ -287,42 +289,53 @@ ElType  CSgmlEl::gettype()
   return type;
 };
 
-char *CSgmlEl::getname()
+char const *CSgmlEl::getname() const
 {
   if (!*name) return NULL;
   return name;
 };
 
-char *CSgmlEl::getcontent()
+char const *CSgmlEl::getcontent() const
 {
   return content;
 };
+
+bool  CSgmlEl::isNamed(WideString const &name) const {
+  return strcmp(w2a(name).c_str(), this->name) == 0;
+}
 
 int CSgmlEl::getcontentsize()
 {
   return contentsz;
 };
 
-char* CSgmlEl::GetParam(int no)
+char const * CSgmlEl::GetParam(int no) const 
 {
   if (no >= parnum) return 0;
   return params[no][0];
 };
 
-char* CSgmlEl::GetChrParam(const char* par)
+char const * CSgmlEl::GetChrParam(const char* par) const 
 {
   for (int i=0; i < parnum; i++)
-    if (!FSF.LStricmp(par,params[i][0])){
+    //if (!FSF.LStricmp(par,params[i][0])){
+    if (stricmp(par,params[i][0]) == 0){
       return params[i][1];
     };
   return 0;
 };
 
-bool CSgmlEl::GetIntParam(const char* par, int& result)
+WideString const CSgmlEl::GetChrParam(const wchar_t* par) const {
+  char const * val = GetChrParam(w2a(par).c_str());
+  return a2w(val);
+}
+
+bool CSgmlEl::GetIntParam(const char* par, int& result) const
 {
 int res = 0;
   for (int i=0; i < parnum; i++)
-    if (!FSF.LStricmp(par,params[i][0]))
+//    if (!FSF.LStricmp(par,params[i][0]))
+    if (stricmp(par,params[i][0]) == 0)
     {
       //bool b = get_number(params[i][1],&res);
       bool b = GetNumber(params[i][1], res, 0, strlen(params[i][1]));
@@ -351,7 +364,9 @@ PSgmlEl CSgmlEl::search(const char* TagName)
 {
 PSgmlEl Next = this->enext;
   while(Next){
-    if (!FSF.LStricmp(TagName,Next->name)) return Next;
+    //if (!FSF.LStricmp(TagName,Next->name)) 
+    if (stricmp(TagName,Next->name) == 0)
+      return Next;
     Next = Next->enext;
   };
   return Next;

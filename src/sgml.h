@@ -12,6 +12,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+#include "defs.h"
+
 // sometimes need it...
 bool get_number(char *str, int *res);
 
@@ -63,13 +65,16 @@ class CSgmlEl
   virtual PSgmlEl child();
 
   ElType gettype();
-  char *getname();
-  char *getcontent();
+  char const *getname() const;
+  char const *getcontent() const;
   int getcontentsize();
 
-  char *GetParam(int no);
-  char *GetChrParam(const char* par);
-  bool GetIntParam(const char* par, int& result);
+  bool  isNamed(WideString const &name) const;
+
+  char const *GetParam(int no) const;
+  char const *GetChrParam(const char* par) const;
+  WideString const GetChrParam(const wchar_t* par) const;
+  bool GetIntParam(const char* par, int& result) const;
   //bool GetFltParam(char *par,double *result);
 
   PSgmlEl search(const char* TagName);
