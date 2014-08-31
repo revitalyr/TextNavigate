@@ -1,7 +1,7 @@
 //tools.cpp
 #include <sstream>
 #include <locale>         // std::locale, std::ctype, std::use_facet
-
+#include <regex>
 #include "Headers.c/plugin.hpp"
 
 #include "tools.h"
@@ -86,11 +86,11 @@ int get_word(WideString &word, WideString const &str, int pos, int sln, int &beg
 {
   int i, j;
   for (i = pos; i > 0 && is_char(str[i]); i--);
-  if (is_char((UCHAR)str[i])) i--;
+  if (is_char(str[i])) i--;
   begin_word_pos = i+1;
 
-  for (j = pos; j < sln && is_char((UCHAR)str[j]); j++);
-  if (is_char((UCHAR)str[j])) j++;
+  for (j = pos; j < sln && is_char(str[j]); j++);
+  if (is_char(str[j])) j++;
   j -= i + 1;
 
   if (j <= 0)
@@ -98,7 +98,7 @@ int get_word(WideString &word, WideString const &str, int pos, int sln, int &beg
   //if (j > MAX_WORD_LENGTH - 1)
   if (j > MAX_PATH - 1)
     return false;
-  word = AnsiString(str+i+1, str+j + 1);
+  word = WideString(str.c_str()+i+1, str.c_str()+j + 1);
   return (j != 0);
 } //get_word
 
@@ -106,8 +106,9 @@ int get_word(WideString &word, WideString const &str, int pos, int sln, int &beg
 #define ASIZE 256
 static UCHAR qs_bc[ASIZE];
 
-void InitQuickSearch(bool SearchUp, WideString const &substr, int strlen_word, bool casesensitive)
+void InitQuickSearch(bool SearchUp, WideString const &substr, bool casesensitive)
 {
+  int strlen_word = substr.length();
   if (SearchUp)
   {
     FillMemory(qs_bc, strlen_word, ASIZE);
@@ -117,8 +118,8 @@ void InitQuickSearch(bool SearchUp, WideString const &substr, int strlen_word, b
 
     if (!casesensitive)
     {
-      char buffer[MAX_WORD_LENGTH];
-	  strncpy(buffer, substr, MAX_WORD_LENGTH);
+      wchar_t buffer[MAX_WORD_LENGTH];
+	    wcsncpy(buffer, substr.c_str(), MAX_WORD_LENGTH);
       FSF.LStrupr(buffer);
       for (int i = 0; i < strlen_word; i++)
         if (qs_bc[(UCHAR)buffer[i]] == strlen_word)
@@ -133,8 +134,8 @@ void InitQuickSearch(bool SearchUp, WideString const &substr, int strlen_word, b
 
     if (!casesensitive)
     {
-      char buffer[MAX_WORD_LENGTH];
-	  strncpy(buffer, substr, MAX_WORD_LENGTH);
+      wchar_t buffer[MAX_WORD_LENGTH];
+	    wcsncpy(buffer, substr.c_str(), MAX_WORD_LENGTH);
       FSF.LStrupr(buffer);
       for (int i = 0; i < strlen_word; i++)
         qs_bc[(UCHAR)buffer[i]] = (UCHAR)(strlen_word - i);
@@ -190,7 +191,7 @@ int QuickSearch_BW(WideString const & string, WideString const & substr, int n, 
   return -1;
 } //QuickSearch_BW
 
-bool GetFile(char const * FileName, char*& buffer, UINT& sz)
+bool GetFile(WideString const & FileName, char*& buffer, UINT& sz)
 {
   buffer = NULL;
   HANDLE s = CreateFile(a2w(FileName).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -270,7 +271,7 @@ int CheckForEsc(void)
   return false;
 } //CheckForEsc
 
-PSgmlEl GetChild(PSgmlEl parent, const char* Name)
+PSgmlEl GetChild(PSgmlEl parent, const wchar_t* Name)
 {
   if (!parent || !Name)
    return NULL;
@@ -295,6 +296,30 @@ bool InitParam(char*& field, const char* param)
   }
   return false;
 } //InitParam
+
+bool InitParam(WideString & field, const char* param){
+  if (param) {
+    field = a2w(param);
+    return true;
+  }
+  return false;
+}
+
+bool InitParam(WideString & field, const wchar_t* param){
+  if (param) {
+    field = param;
+    return true;
+  }
+  return false;
+}
+
+bool InitParam(WideString & field, WideString const & param) {
+  if (!param.empty()) {
+    field = param;
+    return true;
+  }
+  return false;
+}
 
 bool SplitRegExpr(const char* RegExpr, const char* InputStr, SMatches& m)
 {
@@ -328,6 +353,16 @@ bool SplitRegExpr(const char* RegExpr, const char* InputStr, SMatches& m)
   return true;
 }
 
+void ReplaceSpecRegSymbols(WideString &str)
+{
+  using std::wregex;
+  using std::regex_replace;
+
+  const static wregex   specRE (LR"(\(|\)|\[|\]|\{|\}|\|\$)");
+  str = regex_replace(str, specRE, LR"(\$&)");
+} //ReplaceSpecRegSymbols
+
+
 WideString const	getEditorFilename (PluginStartupInfo const & info) {
   size_t      fileNameSize = info.EditorControl(-1,ECTL_GETFILENAME,0,0);
   WideString  fileName(fileNameSize + 1, '\0');
@@ -357,7 +392,7 @@ StringPtr asStringPtr(WideString const &s) {
 
 WideString const	toLower(WideString const &s) {
   std::locale               loc;
-  AnsiString                result (s);
+  WideString                result (s);
   std::ctype<char> const  & facet = std::use_facet <std::ctype<char>> (loc);
   char                    * beg = const_cast<char*>(result.c_str());
   char const              * end = beg + result.length();
@@ -367,8 +402,8 @@ WideString const	toLower(WideString const &s) {
   return result;
 }
 
-AnsiString const	i2s(long i) {
-  std::ostringstream  buf;
+WideString const	i2s(long i) {
+  std::wostringstream  buf;
   buf << i;
   return buf.str();
 }
