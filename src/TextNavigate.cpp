@@ -2,10 +2,13 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+
 #include "Headers.c/plugin.hpp"
+#include "Headers.c/farversion.hpp"
+
 #include "TextNavigate.h"
 
-#include "crtdll.h"
+//#include "crtdll.h"
 #include "commons.h"
 #include "reg.h"
 #include "cregexp/cregexp.h"
@@ -14,6 +17,13 @@
 #include "pclasses.h"
 #include "TextNavigate.h"
 #include "guids.h"
+
+#define PLUGIN_BUILD 29
+#define PLUGIN_DESC L"Navigator plugin for FAR"
+#define PLUGIN_NAME L"TextNavigate"
+#define PLUGIN_FILENAME L"TextNavigate.dll"
+#define PLUGIN_AUTHOR FARCOMPANYNAME
+#define PLUGIN_VERSION MAKEFARVERSION(FARMANAGERVERSION_MAJOR,FARMANAGERVERSION_MINOR,FARMANAGERVERSION_REVISION,PLUGIN_BUILD,VS_RELEASE)
 
 struct PluginStartupInfo Info;
 struct FarStandardFunctions FSF;
@@ -29,12 +39,14 @@ const wchar_t *get_msg(int id)
 extern "C"
 #endif
 
+#define DllExport   __declspec( dllexport )
+
 DllExport void WINAPI SetStartupInfo(const struct PluginStartupInfo *PSInfo)
 {
   ::Info = *PSInfo;
   FSF = *PSInfo->FSF;
   Info.FSF = &FSF;
-  DebugString("SetStartupInfo:");
+  DebugString(L"SetStartupInfo:");
 
   RegistryStorage = new TRegistryStorage();
   TextNavigate = new CTextNavigate();
@@ -42,19 +54,31 @@ DllExport void WINAPI SetStartupInfo(const struct PluginStartupInfo *PSInfo)
 
 DllExport void GetPluginInfo(struct PluginInfo *PInfo)
 {
-  DebugString("GetPluginInfo");
+  DebugString(L"GetPluginInfo");
   PInfo->StructSize = sizeof(struct PluginInfo);
   PInfo->Flags = PF_DISABLEPANELS|PF_EDITOR;
 
-  static const char *PMStrings[] = { get_msg(STitle) };
+  static const wchar_t *PMStrings[] = { get_msg(STitle) };
 
-  PInfo->PluginMenuStrings = PMStrings;
-  PInfo->PluginMenuStringsNumber = 1;
-  PInfo->PluginConfigStrings = PMStrings;
-  PInfo->PluginConfigStringsNumber = 1;
+  PInfo->PluginMenu.Guids=&MenuGuid;
+  PInfo->PluginMenu.Strings = PMStrings;
+  PInfo->PluginMenu.Count = 1;
+  PInfo->PluginConfig.Guids=&MenuGuid;
+  PInfo->PluginConfig.Strings = PMStrings;
+  PInfo->PluginConfig.Count = 1;
 } //GetPluginInfo
 
-DllExport int GetMinFarVersion(void) { return (MAKEFARVERSION(1, 70, 0)); };
+void WINAPI GetGlobalInfoW(struct GlobalInfo *Info)
+{
+  Info->StructSize=sizeof(GlobalInfo);
+  Info->MinFarVersion=FARMANAGERVERSION;
+  Info->Version=PLUGIN_VERSION;
+  Info->Guid=MainGuid;
+  Info->Title=PLUGIN_NAME;
+  Info->Description=PLUGIN_DESC;
+  Info->Author=PLUGIN_AUTHOR;
+}
+
 
 DllExport HANDLE OpenPlugin(int, int)
 {
