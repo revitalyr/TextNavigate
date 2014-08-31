@@ -15,29 +15,29 @@ const static char s_RegWord[] = "(\\w+)";
 const static char s_Definition[] = "Definition";
 const static char s_End[] = "End";
 const static char s_Implementation[] = "Implementation";
-const static char s_Method[] = "Method";
-const static char s_GlobalProc[] = "GlobalProc";
+const static wchar_t s_Method[]       = L"Method";
+const static wchar_t s_GlobalProc[]   = L"GlobalProc";
 const static char s_Type[] = "Type";
 const static char s_Pos[] = "Pos";
 const static char s_MethodTypePos[] = "MethodTypePos";
 const static char s_MethodNamePos[] = "MethodNamePos";
 
-const static char path_root[] = "\\";
-const static char s_FileExts[] = "FileExts";
+const static wchar_t path_root[]      = L"\\";
+const static wchar_t s_FileExts[]     = L"FileExts";
 const static char s_ExcludedFileExts[] = "ExcludedFileExts";
 const static char s_Include[] = "include";
 const static char s_Language[] = "Language";
 const static char s_File[] = "file";
 const static char s_Name[] = "name";
-const static char s_SpecVars[] = "SpecVars";
-const static char s_Var[] = "Var";
+const static wchar_t s_SpecVars[]     = L"SpecVars";
+const static wchar_t s_Var[]          = L"Var";
 const static char s_Value[] = "value";
-const static char s_Class[] = "Class";
-const static char s_SearchPaths[] = "SearchPaths";
+const static wchar_t s_Class[]        = L"Class";
+const static wchar_t s_SearchPaths[]  = L"SearchPaths";
 const static char s_SourceFiles[] = "SourceFiles";
 const static char s_Headers[] = "Headers";
-const static char s_version[] = "version";
-const static char s_versionID[] = "0.3";
+const static wchar_t s_version[]      = L"version";
+const static wchar_t s_versionID[]    = L"0.3";
 const static char s_TextNavigate[] = "TextNavigate";
 
 /*******************************************************************************
@@ -545,26 +545,6 @@ int CTextNavigate::strreplace(WideString & str, WideString const & pattern, Wide
   return n_roundbrackets;
 } //strreplace
 
-void CTextNavigate::ReplaceSpecRegSymbols(WideString &str)
-{
-  const static char specSymbols[] = "()[]{}|";
-
-  for (int i = 0; i < strlen(specSymbols); i++)
-  {
-    char sS = specSymbols[i];
-    for (int j = strlen(str); j >= 0; j--)
-    {
-      char *s = &str[j];
-      if (sS != *s)
-       continue;
-      int s_len = strlen(s);
-      memmove(s + 1, s, s_len);
-      *s = '\\';
-      s[s_len+1] = 0;
-    }
-  }
-} //ReplaceSpecRegSymbols
-
 int CTextNavigate::SearchForMethodImplementation(int &CurLine, int GlobalProc)
 {
   DebugString(L" ========== SearchForMethodImplementation");
@@ -651,8 +631,8 @@ bool CTextNavigate::SearchForMethodDefinition2(int &CurLine, bool GlobalProc)
   if (MethodDefinition.empty())
     return false;
 
-  SMatches m; 
-  WideString StringText;
+  SMatches    m; 
+  WideString  StringText;
   if (!SearchBackward(MethodDefinition, CurLine, StringText, m))
     return false;
 
@@ -693,7 +673,8 @@ bool CTextNavigate::SearchForMethodImplementation2(int &CurLine, int &x_pos)
 {
   DebugString(L" ========= SearchForMethodImplementation2");
 
-  SMatches m; char *StringText;
+  SMatches    m; 
+  WideString  StringText;
   if (SearchForward(MethodImplementation, CurLine, StringText, m))
   {
     x_pos = m.s[MethodNamePos];
@@ -722,7 +703,7 @@ bool CTextNavigate::SearchBackward(WideString const & RegExpr, int &CurLine, Wid
     if (reg.parse(asStringPtr(egs.StringText).get(), &m))
     {
       CurLine = esp.CurLine;
-      StringText = (char*)egs.StringText;
+      StringText = egs.StringText;
       break;
     }
     esp.CurLine--;
@@ -754,7 +735,7 @@ bool CTextNavigate::SearchForward(WideString const & RegExpr, int &CurLine, Wide
     if (reg.parse(asStringPtr(egs.StringText).get(), &m))
     {
       CurLine = esp.CurLine;
-      StringText = (char*)egs.StringText;
+      StringText = egs.StringText;
       return true;
     }
     if (CheckForEsc()) return false;
@@ -785,7 +766,7 @@ bool CTextNavigate::IsInClassDefinition(int CurLine)
   int ClassBegin = CurLine;
   GetMatch(ClassName, m, StringText, ClassNamePos);
 
-  if (!ClassName)
+  if (ClassName.empty())
     return false;
 
   if (!SearchForward(Class->End, CurLine, StringText, m))
@@ -811,13 +792,14 @@ bool CTextNavigate::SearchForMethodDefinition(int &CurLine, int &x_pos, bool Glo
   FarSprintf(tmp_str, L"ClassDefinition = %s", ClassDefinition);
   DebugString(tmp_str);
 #endif
-  SMatches m; char *StringText;
+  SMatches    m; 
+  WideString  StringText;
 
   if (!GlobalProc)
     if (!SearchBackward(ClassDefinition, CurLine, StringText, m))
       return false;
 
-  lstrcpyA(MethodDefinition, Method->Definition);
+  MethodDefinition = Method->Definition;
   ReplaceSpecRegSymbols(MethodType);
   strreplace(MethodDefinition, s_MethodType, MethodType);
 
@@ -899,7 +881,7 @@ int CTextNavigate::ShowPluginMenu()
     if (i == n_Items - 2)
       fmi[i].Separator = true;
     else
-      fmi[i].Text = (char *)get_msg(Msgs[i]);
+      fmi[i].Text = get_msg(Msgs[i]);
   }
   AutoPtr<CPluginMenu> PluginMenu (new CPluginMenu(n_Items, fmi));
 
@@ -1063,7 +1045,7 @@ int CTextNavigate::GetMatch(WideString & Match, const SMatches &m, WideString co
   if (n == -1) return (-1);
   int Len = m.e[n] - m.s[n];
   if (Len)
-    lstrcpynA(Match, str + m.s[n], Len + 1);
+    Match = str.substr(m.s[n], Len + 1);
   return Len;
 } //GetMatch
 
@@ -1141,15 +1123,12 @@ void CTextNavigate::Pop()
 void CTextNavigate::DrawTitle()
 {
   if (FEditorState == esCtrlKPressed)
-  {
-    string Title((const UCHAR*)get_msg(SCtrlKPressed));
-    Info.EditorControl(-1, ECTL_SETTITLE, 0, (char*)Title.get());
-  }
+    Info.EditorControl(-1, ECTL_SETTITLE, 0, const_cast<wchar_t*> (get_msg(SCtrlKPressed)));
   else if (FEditorState == esCtrlIPressed)
   {
-    string Title((const UCHAR*)get_msg(SIncrementalSearchTitle));
+    WideString Title(get_msg(SIncrementalSearchTitle));
     Title += FIncrementalSearchBuffer;
-    Info.EditorControl(-1, ECTL_SETTITLE, 0, (char*)Title.get());
+    Info.EditorControl(-1, ECTL_SETTITLE, 0, const_cast<wchar_t*> (Title.c_str()));
   }
   else
   {
@@ -1392,7 +1371,7 @@ void TWindowData::LoadBookmarks()
       int sr = 0;
       if (mr.cMatch == 4)
       {
-        char s_i[10];
+//        char s_i[10];
         //lstrcpynA(s_i, str_repr + 1 + mr.s[0], mr.e[0] - mr.s[0]);
         //CurLine = FSF.atoi(s_i);
         CurLine = std::stoi(AnsiString(str_repr + 1 + mr.s[0], mr.e[0] - mr.s[0]));
@@ -1441,17 +1420,14 @@ void TWindowData::PopBookmark()
 CSearchPaths::CSearchPaths(PSgmlEl elem)
               : was_found (MAX_FOUND_COUNT)
 {
-  AddSearchPaths(elem);  
-  pathways.add(get_def_path());  
+  if(elem) {
+    AddSearchPaths(elem);  
+    pathways.add(get_def_path());  
+  }
 } //CSearchPaths
 
 CSearchPaths::~CSearchPaths()
 {
-  for (int i = 0; i < EnvVarsCount; i++)
-  {
-    delete env_vars[EnvVarsCount].EnvVar;
-    delete env_vars[EnvVarsCount].EnvVarValue;
-  }
   free_find_data();
 }
 
@@ -1463,7 +1439,7 @@ bool CSearchPaths::ProcessCtrlEnter(SLanguage* Language)
   if (!get_filename())
      return false;
 
-  int pos = find_file(Language ? Language->ExcludedFileExts : NULL);
+  int pos = find_file(Language ? Language->ExcludedFileExts.c_str() : nullptr);
   if (!pos)
     return false;
 
@@ -1496,35 +1472,27 @@ bool CSearchPaths::ProcessCtrlEnter(SLanguage* Language)
   return true;
 } //ProcessCtrlEnter
 
-void CSearchPaths::AddSearchPaths(PSgmlEl elem)
-{
-  DebugString(L"CSearchPaths::CSearchPaths::");
+void CSearchPaths::AddSearchPaths (PSgmlEl elem) {
+  DebugString (L"CSearchPaths::CSearchPaths::");
 
-  PSgmlEl SearchPaths = GetChild(elem, s_SearchPaths);
+  PSgmlEl SearchPaths = GetChild (elem, s_SearchPaths);
 
-  if (SearchPaths && SearchPaths->GetChrParam(s_Value))
-  {
-    wchar_t tmpPathWays[PWL];
+  if (SearchPaths && SearchPaths->GetChrParam (s_Value)) {
+    wchar_t tmpPathWays [PWL];
 
-    ExpandEnvironmentStrings(a2w(SearchPaths->GetChrParam(s_Value)).c_str(), tmpPathWays, PWL);
+    ExpandEnvironmentStrings (a2w (SearchPaths->GetChrParam (s_Value)).c_str (), tmpPathWays, PWL);
     (s_PathWays += tmpPathWays) += L";";
   }
 
-  PSgmlEl SpecVars = GetChild(elem, s_SpecVars);
+  PSgmlEl SpecVars = GetChild (elem, s_SpecVars);
 
-  if (SpecVars)
-  {
-    PSgmlEl Var = GetChild(SpecVars, s_Var);
-
-    while (Var && (EnvVarsCount < MAX_ENV_VARS))
-    {
-      if (Var->getname() && !strcmp(Var->getname(), s_Var))
-      {
-        InitParam(env_vars[EnvVarsCount].EnvVar, Var->GetChrParam(s_Name));
-        InitParam(env_vars[EnvVarsCount].EnvVarValue, Var->GetChrParam(s_Value));
-        EnvVarsCount++;
+  if (SpecVars) {
+    while (PSgmlEl Var = GetChild (SpecVars, s_Var)) {
+      if (Var->getname () && (a2w (Var->getname ()) == s_Var)) {
+        ENV_VAR     env_var { a2w (Var->GetChrParam (s_Name)), a2w (Var->GetChrParam (s_Value)) };
+        env_vars.push_back (env_var);
       }
-      Var = Var->next();
+      Var = Var->next ();
     }
   }
 } //AddSearchPaths
@@ -1550,6 +1518,18 @@ void CSearchPaths::PrepareForSearch()
   free_find_data();
 } //PrepareForSearch
 
+void CSearchPaths::cleanup() {
+  s_PathWays.clear();
+  file_name.clear();
+  last_path.clear();
+  pathways.cleanup();
+  was_found.cleanup();
+  find_file_name.clear();
+  find_file_path.clear();
+  env_vars.clear();
+  EnvVarsCount = 0;
+}
+
 void CSearchPaths::ClearAfterSearch()
 {
   free_find_data();
@@ -1573,7 +1553,7 @@ int CSearchPaths::get_filename(void)
     {
       int begin_word_pos;
 
-      if (get_word(file_name, w2a(EStr.StringText).c_str(), mx, EStr.StringLength, begin_word_pos))
+      if (get_word(file_name, EStr.StringText, mx, EStr.StringLength, begin_word_pos))
       {
         int len = file_name.length();
 
@@ -1589,7 +1569,7 @@ int CSearchPaths::get_filename(void)
         if (beg == file_name)
         {
           find_file_name = file_name;
-          find_file_path = "";
+          find_file_path = L"";
           return true;
         }
 
@@ -1601,7 +1581,7 @@ int CSearchPaths::get_filename(void)
         }
 
         find_file_name = beg;
-        find_file_path = AnsiString (file_name.c_str(), beg);
+        find_file_path = file_name.substr(0, beg - file_name.c_str());
 
         return true;
       }
@@ -1611,13 +1591,13 @@ int CSearchPaths::get_filename(void)
   return false;
 } //get_filename
 
-int CSearchPaths::find_file(char const *ExcludedFileExts)
+int CSearchPaths::find_file(wchar_t const *ExcludedFileExts)
 {
   wchar_t   buf[MAX_PATH];
 
   MakePathWays();
   GetCurrentDirectory(MAX_PATH-1, buf);
-  last_path = w2a (buf);
+  last_path = buf;
 
   HANDLE HF;
   WIN32_FIND_DATA FD;
@@ -1646,19 +1626,19 @@ int CSearchPaths::find_file(char const *ExcludedFileExts)
 
         wcsncpy(name, FD.cFileName, MAX_PATH);
 
-        if (AlreadyFound(pathways.get(i), w2a(name).c_str()))
+        if (AlreadyFound(pathways.get(i), name))
           continue;
 
-        if (ExcludedFileExts && FSF.ProcessName(a2w(ExcludedFileExts).c_str(), name, 0, PN_CMPNAMELIST|PN_SKIPPATH))
+        if (ExcludedFileExts && FSF.ProcessName(ExcludedFileExts, name, 0, PN_CMPNAMELIST|PN_SKIPPATH))
           continue;
 
-        was_found.insert(w2a(name).c_str(), i);
+        was_found.insert(name, i);
         //was_found[wf_count]->FileSize = FD.nFileSizeLow;
       } while (FindNextFile(HF, &FD) && was_found.count() < MAX_FOUND_COUNT);
       FindClose(HF);
     }//for
 
-    if (!was_found.count()) find_file_name += ".*";
+    if (!was_found.count()) find_file_name += L".*";
     else break;
   }//for
 
@@ -1678,13 +1658,13 @@ int CSearchPaths::ShowSelectFileMenu()
     //fmi[i].Text = new char[MAX_PATH];
     if (i < 9)
       //FarSprintf(fmi[i].Text, "&%d %s", i + 1, tmp_str);
-      fmi[i].Text = "&" + i2s(i + 1) + w2a(tmp_str);
+      fmi[i].Text = L"&" + i2s(i + 1) + tmp_str;
     else if (i < 15)
       //FarSprintf(fmi[i].Text, "&%c %s", i - 9 + 'A', tmp_str);
-      fmi[i].Text = "&" + AnsiString(1, i - 9 + 'A') + w2a(tmp_str);
+      fmi[i].Text = L"&" + WideString(1, i - 9 + 'A') + tmp_str;
     else
       //FarSprintf(fmi[i].Text, "%-2s%s", "", tmp_str);
-      fmi[i].Text = "  " + w2a(tmp_str);
+      (fmi[i].Text = L"  ") += tmp_str;
   }
   AutoPtr<CPluginMenu> PluginMenu (new CPluginMenu(was_found.count(), fmi));
 
@@ -1712,7 +1692,7 @@ int CSearchPaths::get_full_file_name(WideString & dest, int pos)
 
 int CSearchPaths::get_full_file_name(WideString & dest, LPFND fnd)
 {
-  if (fnd->file_path)
+  if (!fnd->file_path.empty())
     dest = fnd->file_path;
   else
     dest = pathways.get(fnd->path_index);
@@ -1732,7 +1712,7 @@ int CSearchPaths::get_full_file_name(WideString & dest, LPFND fnd)
   return dest.length();
 } //get_full_file_name
 
-int CSearchPaths::AlreadyFound(char const *path, char const *file_name)
+int CSearchPaths::AlreadyFound(WideString const &path, WideString const &file_name)
 {
   FOUND fnd;
   fnd.file_name = file_name;
@@ -1767,9 +1747,8 @@ void CSearchPaths::ResolveEnvVars(void)
   DebugString(tmp_str);
 #endif
 
-  wregex        specRE (LR"(\)|\(|\$)");
-  wregex        substRE (LR"(\$\(([^)]+)\))");
-  std::wsmatch  match;
+  static const wregex substRE (LR"(\$\(([^)]+)\))");
+  std::wsmatch        match;
 
   for (int i = 0; i < pathways.count (); i++) {
     WideString  pw = pathways.get (i);
@@ -1785,10 +1764,8 @@ void CSearchPaths::ResolveEnvVars(void)
       if (it == env_vars.end())
         continue;
 
-      WideString      forVarRE = regex_replace(pw, specRE, LR"(\$&)");
-      wregex          varRE(forVarRE);
-
-      pw = regex_replace(pw, varRE, it->EnvVarValue);
+      ReplaceSpecRegSymbols(pw);
+      pw = regex_replace(pw, wregex (pw), it->EnvVarValue);
     }//if
 
     //if (char *spw = const_cast<char *> (strstr (pw, "\\..."))) //нашли идентификатор подкаталогов
@@ -1806,7 +1783,7 @@ void CSearchPaths::FindAllSubDirs(WideString const &RootDir)
 {
   HANDLE HF;
   WIN32_FIND_DATA FD;
-  if (SetCurrentDirectory(a2w(RootDir).c_str()))
+  if (SetCurrentDirectory(RootDir.c_str()))
   {
     if ((HF = FindFirstFile(L"*.*", &FD)) == INVALID_HANDLE_VALUE)
       return;
@@ -1815,15 +1792,14 @@ void CSearchPaths::FindAllSubDirs(WideString const &RootDir)
       if ((FD.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) &&
           FD.cFileName[0] != '.')
       {
-        char *pathway = new char[strlen(RootDir) + lstrlen(FD.cFileName) + 3];
-        strcat(strcat(strcpy(pathway, RootDir), "\\"), w2a(FD.cFileName).c_str());
+        WideString  pathway = RootDir + L"\\" + FD.cFileName;
         pathways.add(pathway);
         FindAllSubDirs(pathway);
       }
     } while (FindNextFile(HF, &FD) && pathways.count() < MAX_PATHWAYS_COUNT);
     FindClose(HF);
   }
-  SetCurrentDirectory(a2w(RootDir).c_str());
+  SetCurrentDirectory(RootDir.c_str());
 } //FindAllSubDirs
 
 WideString const CSearchPaths::get_def_path(void)
@@ -1862,7 +1838,7 @@ WideString const CSearchPaths::get_def_path(void)
 SLanguage::SLanguage(CXMLFile* owner, CSgmlEl* elem)
 {
 #ifdef _DEBUG
- FarSprintf(tmp_str, "s_Language::s_Language::1:elem = %s", elem->getname());
+ FarSprintf(tmp_str, L"s_Language::s_Language::1:elem = %s", elem->getname());
  DebugString(tmp_str);
 #endif
   Owner = owner;
@@ -1890,12 +1866,6 @@ SLanguage::~SLanguage()
 {
   delete Method;
   delete Class;
-
-  delete Headers;
-  delete SourceFiles;
-  delete ExcludedFileExts;
-  delete FileExts;
-  delete name;
 }
 
 /*******************************************************************************
@@ -1925,9 +1895,9 @@ SClass::~SClass()
               class SMethod
 *******************************************************************************/
 
-SMethod::SMethod(PSgmlEl elem, const char* Tag)
+SMethod::SMethod(PSgmlEl elem, WideString const & Tag)
 {
-  PSgmlEl Method = GetChild(elem, Tag);
+  PSgmlEl Method = GetChild(elem, Tag.c_str());
   if (Method)
   {
     InitParam(Name, Method->GetChrParam(s_Name));
@@ -1939,10 +1909,6 @@ SMethod::SMethod(PSgmlEl elem, const char* Tag)
 
 SMethod::~SMethod()
 {
-  delete Implementation;
-  delete Definition;
-  delete Type;
-  delete Name;
 }
 
 /*******************************************************************************
@@ -1966,7 +1932,7 @@ FarMenuItem *CPluginMenu::Setup(int num, const FFarMenuItem &mi)
   FarMenuItem *p = Item(num);
   if (!p) return NULL;
 
-  lstrcpyA(p->Text, mi.Text.c_str());
+  p->Text = mi.Text.c_str();
   //p->Selected = mi.Selected;
   //p->Checked = mi.Checked;
   //p->Separator = mi.Separator;
@@ -1989,12 +1955,12 @@ int CPluginMenu::Execute(WideString const &Title, WideString const &Bottom)
               class CXMLFile
 *******************************************************************************/
 
-CXMLFile::CXMLFile()
+CXMLFile::CXMLFile() : SearchPaths(nullptr)
 {
   init(NULL);
 }
 
-CXMLFile::CXMLFile(char const *xml_file_name)
+CXMLFile::CXMLFile(WideString const &xml_file_name) : SearchPaths(nullptr)
 {
   init(xml_file_name);
 }
@@ -2003,21 +1969,21 @@ CXMLFile::~CXMLFile()
 {
 }
 
-void CXMLFile::init(char const *file_name)
+void CXMLFile::init(WideString const &file_name)
 {
-  XMLFileName = (file_name ? file_name : Info.ModuleName);
+  XMLFileName = (!file_name.empty() ? file_name : Info.ModuleName);
 
   int i = XMLFileName.length() - 1;
   while (XMLFileName[i] != '.')
     i--;
   filepath = XMLFileName;
   XMLFileName.resize(i);
-  XMLFileName += ".xml";
+  XMLFileName += L".xml";
   while (filepath[i] != '\\')
     i--;
   filepath[i+1] = 0;
 
-  SearchPaths = new CSearchPaths(NULL);
+  SearchPaths.cleanup();
   char *xml_data; UINT sz;
   GetFile(XMLFileName.c_str(), xml_data, sz);
   loaddata(xml_data, sz);
@@ -2026,14 +1992,12 @@ void CXMLFile::init(char const *file_name)
 
 void CXMLFile::AddSearchPaths(PSgmlEl elem)
 {
-  if (!SearchPaths)
-    SearchPaths = new CSearchPaths(NULL);
-  SearchPaths->AddSearchPaths(elem);
+  SearchPaths.AddSearchPaths(elem);
 }
 
 bool CXMLFile::loaddata(char *data, int len)
 {
-  DebugString(" ============ loaddata");
+  DebugString(L" ============ loaddata");
 
   if (!(data && len))
     return false;
@@ -2047,11 +2011,11 @@ bool CXMLFile::loaddata(char *data, int len)
 
   PSgmlEl basetag = searchbasetag(base);
 #ifdef _DEBUG
-  FarSprintf(tmp_str, "basetag = %x", basetag);
+  FarSprintf(tmp_str, L"basetag = %x", basetag);
   DebugString(tmp_str);
 #endif
 
-  if (basetag && !FSF.LStrnicmp(basetag->GetChrParam(s_version), s_versionID, strlen(s_versionID)) &&
+  if (basetag && !FSF.LStrnicmp(basetag->GetChrParam(s_version).c_str(), s_versionID, wcslen(s_versionID)) &&
      basetag->child())
   {
     readcdata(basetag);
@@ -2062,12 +2026,12 @@ bool CXMLFile::loaddata(char *data, int len)
 
 void CXMLFile::readcdata(PSgmlEl basetag)
 {
-  char *param;
+  char const *param;
 
   PSgmlEl elem = basetag->child();
   if (!elem) return;
 #ifdef _DEBUG
-  FarSprintf(tmp_str, "\r\n ========== readcdata\r\nnelem = %s", elem->GetChrParam("name"));
+  FarSprintf(tmp_str, L"\r\n ========== readcdata\r\nnelem = %s", elem->GetChrParam("name"));
   DebugString(tmp_str);
 #endif
 
@@ -2083,38 +2047,36 @@ void CXMLFile::readcdata(PSgmlEl basetag)
     else if (!strcmp(elem->getname(), s_Language))
     {
       struct EditorInfo EInfo;
-      if (!Info.EditorControl(ECTL_GETINFO, &EInfo))
+      if (!Info.EditorControl(-1, ECTL_GETINFO, 0, &EInfo))
         continue;
 
-      char *FileExts = elem->GetChrParam(s_FileExts);
+      WideString  FileExts (elem->GetChrParam(s_FileExts));
+      WideString  FileName (getEditorFilename(Info));
 
-      if (FileExts && !FSF.ProcessName(FileExts, (char *)EInfo.FileName, PN_CMPNAMELIST|PN_SKIPPATH))
+      if (!FSF.ProcessName(FileExts.c_str(), const_cast<wchar_t*> (FileName.c_str()), 0, PN_CMPNAMELIST|PN_SKIPPATH))
         continue;
 
 #ifdef _DEBUG
-    FarSprintf(tmp_str, "readdata::EInfo.FileName = \r\n%s\r\n", EInfo.FileName);
+    FarSprintf(tmp_str, L"readdata::EInfo.FileName = \r\n%s\r\n", w2a(FileName).c_str());
     DebugString(tmp_str);
 #endif
 
       Language = new SLanguage(this, elem);
     }
-    else if (!strcmp(elem->getname(), s_SearchPaths))
+    else if (elem->isNamed (s_SearchPaths))
     {
-      SearchPaths->AddSearchPaths(basetag);
+      SearchPaths.AddSearchPaths(basetag);
     }
   }
 } //readcdata
 
 bool CXMLFile::includefile(char const *param)
 {
-  DebugString(" === includefile");
+  DebugString(L" === includefile");
 
-  char path[MAX_PATH];
-  strcpy(path, filepath.c_str());
-  int i = strlen(path);
-  for (; i; i--)
-    if (path[i] == '\\' || path[i] == '/') break;
-  lstrcpyA(path+i+1, param);
+  WideString  path(filepath);
+  if(!((path.back() == '\\') || (path.back() == '/')))
+    path += '\\';
 
   char* data; UINT sz;
   GetFile(path, data, sz);
@@ -2126,7 +2088,7 @@ bool CXMLFile::includefile(char const *param)
   if (BaseEl->parse(data, sz))
   {
     PSgmlEl tmpEl = searchbasetag(BaseEl);
-    if (tmpEl && !FSF.LStrnicmp(tmpEl->GetChrParam(s_version), s_versionID, strlen(s_versionID)) &&
+    if (tmpEl && !FSF.LStrnicmp(tmpEl->GetChrParam(s_version).c_str(), s_versionID, wcslen(s_versionID)) &&
         tmpEl->child())
     {
       readcdata(tmpEl);

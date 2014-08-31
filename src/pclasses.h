@@ -145,7 +145,7 @@ class CSearchPaths
 
     WideString const get_def_path();
     void ResolveEnvVars();
-    int AlreadyFound(char const *path, char const *file_name);
+    int AlreadyFound(WideString const &path, WideString const &file_name);
     int get_full_file_name(WideString & dest, LPFND fnd); //!!!
 
     void free_find_data();
@@ -159,8 +159,9 @@ class CSearchPaths
    bool ProcessCtrlEnter(SLanguage* Language);
 
    int get_filename();
-   int find_file(char const *ExcludedFileExts);
+   int find_file(wchar_t const *ExcludedFileExts);
    int get_full_file_name(WideString & dest, int pos);
+   void cleanup();
    void ClearAfterSearch();
 
    void AddSearchPaths(PSgmlEl elem);
@@ -206,10 +207,14 @@ struct SLanguage
   SLanguage(CXMLFile* owner, PSgmlEl elem = NULL);
   ~SLanguage();
 
-  char *name, *FileExts, *ExcludedFileExts, *SourceFiles, *Headers;
-  SClass* Class;
-  SMethod* Method;
-  CXMLFile* Owner;
+  WideString    name;
+  WideString    FileExts;
+  WideString    ExcludedFileExts;
+  WideString    SourceFiles;
+  WideString    Headers;
+  SClass      * Class;
+  SMethod     * Method;
+  CXMLFile    * Owner;
 }; //SLanguage
 
 /*******************************************************************************
@@ -421,7 +426,6 @@ class CTextNavigate
     SMethod       * Method;
 
     int strreplace(WideString & str, WideString const  &pattern, WideString const & value);
-    void ReplaceSpecRegSymbols(WideString &str);
     int GetMatch(WideString & Match, const SMatches &m, WideString const & str, int n);
     void DrawTitle();
 
