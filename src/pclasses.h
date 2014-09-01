@@ -9,7 +9,7 @@
 
 //#include "crtdll.h"
 #include "commons.h"
-#include "string.hpp"
+//#include "string.hpp"
 #include "Dialog.h"
 #include "sgml.h"
 #include "cregexp/CRegExp.h"
@@ -402,14 +402,14 @@ class CTextNavigate
     int             FKeyCode;
     int             FPrevKeyCode;
     TEditorState    FEditorState;
-    wchar_t         FIncrementalSearchBuffer[MAX_INCREMENTAL_SEARCH_LENGTH];
-    wchar_t       * FIncrementalSearchBufferEnd;
+    char            FIncrementalSearchBuffer[MAX_INCREMENTAL_SEARCH_LENGTH];
+    char          * FIncrementalSearchBufferEnd;
 
     CXMLFile        XMLFile;
     CXMLFilesColl   XMLFilesColl;
     CWindowsColl    windows;
 
-    WideString      word;
+    AnsiString      word;
 
     WideString      MethodType;
     WideString      MethodName;
@@ -429,7 +429,7 @@ class CTextNavigate
     int GetMatch(WideString & Match, const SMatches &m, WideString const & str, int n);
     void DrawTitle();
 
-    int do_search(WideString const & string, WideString const & substr, bool SearchUp, int begin_word_pos, int &CurLine, bool SearchSelection, bool casesensitive);
+    int do_search(const char* string, const char* substr, bool SearchUp, int begin_word_pos, int &CurLine, bool SearchSelection, bool casesensitive);
 
     bool SearchBackward(WideString const & RegExpr, int &CurLine, WideString & StringText, SMatches &m);
     bool SearchForward(WideString const & RegExpr, int &CurLine, WideString & StringText, SMatches &m);

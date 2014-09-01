@@ -40,6 +40,9 @@ const static wchar_t s_version[]      = L"version";
 const static wchar_t s_versionID[]    = L"0.3";
 const static char s_TextNavigate[] = "TextNavigate";
 
+extern union SCharData CharSet;
+
+
 /*******************************************************************************
               class CTextNavigate
 *******************************************************************************/
@@ -217,7 +220,7 @@ int CTextNavigate::ProcessEditorInput(const INPUT_RECORD* Rec)
                            (KEY_BS == c) ||
                            ArrowKeysPressed))
       {
-        if (wcslen(FIncrementalSearchBuffer) < MAX_INCREMENTAL_SEARCH_LENGTH)
+        if (strlen(FIncrementalSearchBuffer) < MAX_INCREMENTAL_SEARCH_LENGTH)
         {
           if (!ArrowKeysPressed)
           {
@@ -248,7 +251,7 @@ int CTextNavigate::ProcessEditorInput(const INPUT_RECORD* Rec)
             bool Upward = ArrowKeysPressed ? KeyCode == KEY_UP || KeyCode == KEY_LEFT : false;
             int CurPos = EInfo.CurPos && !Upward ? EInfo.CurPos - 1 : EInfo.CurPos - 1;
             int pos_found;
-            if ((pos_found = do_search(EStr.StringText, FIncrementalSearchBuffer,
+            if ((pos_found = do_search(w2a(EStr.StringText).c_str(), FIncrementalSearchBuffer,
                                        Upward, CurPos, CurLine, true, false)) != -1)
             {
               //обнулим код клавиши, для того чтобы запретить плагину ECompl
@@ -258,7 +261,7 @@ int CTextNavigate::ProcessEditorInput(const INPUT_RECORD* Rec)
               ((INPUT_RECORD*)Rec)->Event.KeyEvent.wVirtualScanCode = 0;
               //((INPUT_RECORD*)Rec)->Event.KeyEvent.uChar.AsciiChar = '\0';
               //((INPUT_RECORD*)Rec)->Event.KeyEvent.wRepeatCount = 0;
-              int Len = wcslen(FIncrementalSearchBuffer);
+              int Len = strlen(FIncrementalSearchBuffer);
               SelectFound(CurLine, pos_found, Len);
               set_cursor_pos(pos_found + Len, CurLine, &EInfo);
             }
@@ -366,7 +369,7 @@ int CTextNavigate::processCtrlAltUpDown(int FKeyCode, int FPrevKeyCode)
   if (!Info.EditorControl(-1, ECTL_GETSTRING, 0, &EStr))
     return 0;
 
-  WideString    string (EStr.StringText);
+  AnsiString    string = w2a(EStr.StringText);
   bool          SearchSelection = plugin_options.b_searchselection && (EInfo.BlockType == BTYPE_STREAM);
 
   //если курсор стоит сразу после слова, ищем его
@@ -390,13 +393,13 @@ int CTextNavigate::processCtrlAltUpDown(int FKeyCode, int FPrevKeyCode)
       egs.StringNumber = EInfo.BlockStartLine;
       if (!Info.EditorControl(-1, ECTL_GETSTRING, 0, &egs))
        return false;
-      string = egs.StringText;
+      string = w2a(egs.StringText);
       int SelLength = egs.SelEnd == -1 ? egs.StringLength : egs.SelEnd - egs.SelStart;
       word = string.substr(egs.SelStart, SelLength);
     }
     else //выделим слово под курсором в массив word
       if (begin_word_pos > EStr.StringLength || !get_word(word, string, begin_word_pos, EStr.StringLength, begin_word_pos))
-        word = L"";
+        word = "";
   }
 
   if (word.empty())
@@ -405,7 +408,7 @@ int CTextNavigate::processCtrlAltUpDown(int FKeyCode, int FPrevKeyCode)
     word = toLower(word);
 
   int pos_found;
-  if ((pos_found = do_search(string, word, FKeyCode == VK_UP, begin_word_pos, CurLine, SearchSelection, plugin_options.b_casesensitive)) != -1)
+  if ((pos_found = do_search(string.c_str(), word.c_str(), FKeyCode == VK_UP, begin_word_pos, CurLine, SearchSelection, plugin_options.b_casesensitive)) != -1)
   {
     set_cursor_pos(pos_found, CurLine, &EInfo);
   }
@@ -413,16 +416,15 @@ int CTextNavigate::processCtrlAltUpDown(int FKeyCode, int FPrevKeyCode)
   return (pos_found != -1 ? 1 : 0);
 } //processCtrlAltUpDown
 
-int CTextNavigate::do_search(WideString const & srcStr, WideString const & substr, bool SearchUp, int begin_word_pos, int &CurLine, bool SearchSelection, bool casesensitive)
+int CTextNavigate::do_search(const char* String, const char* substr, bool SearchUp, int begin_word_pos, int &CurLine, bool SearchSelection, bool casesensitive)
 {
-  if (substr.empty()) return -1;
+  if (!substr) return -1;
   struct EditorInfo EInfo;
   if (!Info.EditorControl(-1, ECTL_GETINFO, 0, &EInfo))
     return -1;
 
-  WideString  string (srcStr);
-  int StringLength = string.length();
-  int strlen_word = substr.length();
+  int StringLength = strlen(String);
+  int strlen_word = strlen(substr);
   int search_pos = SearchUp ? begin_word_pos : begin_word_pos+1;
   bool borders_crossed = false; //признак зацикливания поиска
   int BeginLine = CurLine;
@@ -442,12 +444,13 @@ int CTextNavigate::do_search(WideString const & srcStr, WideString const & subst
       Info.EditorControl(-1, ECTL_SETPOSITION, 0, &esp);
       Info.EditorControl(-1, ECTL_GETSTRING, 0, &EStr);
       StringLength = EStr.StringLength;
-      string = EStr.StringText;
+      static AnsiString strHolder = w2a(EStr.StringText);
+      String = strHolder.c_str();
       search_pos = SearchUp ? EStr.StringLength : 0;
     }
 
-    if ((pos_found = SearchUp ? QuickSearch_BW(string, substr, search_pos, strlen_word, SearchSelection, casesensitive != 0) :
-                                QuickSearch_FW(string, substr, StringLength, strlen_word, search_pos, SearchSelection, casesensitive != 0)) != -1)
+    if ((pos_found = SearchUp ? QuickSearch_BW(String, substr, search_pos, strlen_word, SearchSelection, casesensitive != 0) :
+                                QuickSearch_FW(String, substr, StringLength, strlen_word, search_pos, SearchSelection, casesensitive != 0)) != -1)
       break;
 
     if (BeginLine == CurLine && borders_crossed)
@@ -1127,7 +1130,7 @@ void CTextNavigate::DrawTitle()
   else if (FEditorState == esCtrlIPressed)
   {
     WideString Title(get_msg(SIncrementalSearchTitle));
-    Title += FIncrementalSearchBuffer;
+    Title += a2w(FIncrementalSearchBuffer);
     Info.EditorControl(-1, ECTL_SETTITLE, 0, const_cast<wchar_t*> (Title.c_str()));
   }
   else
@@ -1244,9 +1247,11 @@ char* CPositionsRefColl::GetStringRepresentation()
 *******************************************************************************/
 
 TWindowData::TWindowData(int id, char* FileName)
+            : eid (id)
+            , FullFileName (FileName)
 {
-  eid = id;
-  FullFileName = (UCHAR*)FileName;
+  //eid = id;
+  //FullFileName = (UCHAR*)FileName;
 }
 
 TWindowData::~TWindowData()
@@ -1265,7 +1270,7 @@ void TWindowData::clear(bool RegistryAlso)
     //  delete FBookmarksStack->Pop();
   }
   if (RegistryAlso)
-    RegistryStorage->DeleteRegValue(REG_KEY_BOOKMARKS, (char*)FullFileName.get());
+    RegistryStorage->DeleteRegValue(REG_KEY_BOOKMARKS, FullFileName.c_str());
 }
 
 void TWindowData::AddBookmark(int CurLine, int CurPos, int TopScreenLine, int LeftPos)
@@ -1330,7 +1335,7 @@ void TWindowData::SaveBookmarks()
   if (!positions_str.empty())
   {
     RegistryStorage->SetRegKey(REG_KEY_BOOKMARKS,
-                               (const char*)FullFileName.get(), positions_str.c_str());
+                               FullFileName.c_str(), positions_str.c_str());
   }
 } //SaveBookmarks
 

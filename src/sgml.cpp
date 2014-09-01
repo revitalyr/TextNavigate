@@ -372,6 +372,10 @@ PSgmlEl Next = this->enext;
   return Next;
 };
 
+PSgmlEl CSgmlEl::search(const wchar_t* TagName) {
+  return search(w2a(TagName).c_str());
+}
+
 PSgmlEl CSgmlEl::enumchilds(int no)
 {
 PSgmlEl El = this->echild;

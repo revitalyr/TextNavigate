@@ -11,25 +11,6 @@
 
 SCharData CharSet;
 
-void SCharData::SetBit(unsigned char Bit)
-{
-  int p = Bit/8;
-  CArr[p] |= (char)(1 << Bit%8);
-}
-
-void SCharData::ClearBit(unsigned char Bit)
-{
-  int p = Bit/8;
-  CArr[p] &= (char)(~(1 << Bit%8));
-}
-
-bool SCharData::GetBit(unsigned char Bit) const
-{
-  int p = (unsigned char)Bit/8;
-  return (CArr[p] & (1 << Bit%8))!=0;
-}
-
-
 void AddEngCharsToUnion(void)
 {
   //добавляем английские буквы
@@ -82,7 +63,7 @@ int is_char(UCHAR c)
   return CharSet.GetBit(c);
 } //is_char
 
-int get_word(WideString &word, WideString const &str, int pos, int sln, int &begin_word_pos)
+int get_word(AnsiString &word, AnsiString const &str, int pos, int sln, int &begin_word_pos)
 {
   int i, j;
   for (i = pos; i > 0 && is_char(str[i]); i--);
@@ -98,18 +79,26 @@ int get_word(WideString &word, WideString const &str, int pos, int sln, int &beg
   //if (j > MAX_WORD_LENGTH - 1)
   if (j > MAX_PATH - 1)
     return false;
-  word = WideString(str.c_str()+i+1, str.c_str()+j + 1);
+  word = AnsiString(str.c_str()+i+1, str.c_str()+j + 1);
   return (j != 0);
 } //get_word
+
+int get_word(WideString & word, WideString const & str, int pos, int sln, int& begin_word_pos) {
+  AnsiString    tmp_word = w2a(word); 
+  int           res = get_word(tmp_word, w2a(str), pos, sln, begin_word_pos);
+  word = a2w(tmp_word);
+
+  return res;
+}
 
 //static const int ASIZE = 256;
 #define ASIZE 256
 static UCHAR qs_bc[ASIZE];
 
-void InitQuickSearch(bool SearchUp, WideString const &substr, bool casesensitive)
+void InitQuickSearch(bool searchUp, AnsiString const & substr, bool casesensitive)
 {
   int strlen_word = substr.length();
-  if (SearchUp)
+  if (searchUp)
   {
     FillMemory(qs_bc, strlen_word, ASIZE);
     for (int i = 0; i < strlen_word; i++)
@@ -118,9 +107,9 @@ void InitQuickSearch(bool SearchUp, WideString const &substr, bool casesensitive
 
     if (!casesensitive)
     {
-      wchar_t buffer[MAX_WORD_LENGTH];
-	    wcsncpy(buffer, substr.c_str(), MAX_WORD_LENGTH);
-      FSF.LStrupr(buffer);
+      char buffer[MAX_WORD_LENGTH];
+	    strncpy(buffer, substr.c_str(), MAX_WORD_LENGTH);
+      toUpper(buffer);  //FSF.LStrupr(buffer);
       for (int i = 0; i < strlen_word; i++)
         if (qs_bc[(UCHAR)buffer[i]] == strlen_word)
           qs_bc[(UCHAR)buffer[i]] = i ? (UCHAR)i : (UCHAR)strlen_word;
@@ -134,16 +123,16 @@ void InitQuickSearch(bool SearchUp, WideString const &substr, bool casesensitive
 
     if (!casesensitive)
     {
-      wchar_t buffer[MAX_WORD_LENGTH];
-	    wcsncpy(buffer, substr.c_str(), MAX_WORD_LENGTH);
-      FSF.LStrupr(buffer);
+      char buffer[MAX_WORD_LENGTH];
+	    strncpy(buffer, substr.c_str(), MAX_WORD_LENGTH);
+      toUpper(buffer);  //FSF.LStrupr(buffer);
       for (int i = 0; i < strlen_word; i++)
         qs_bc[(UCHAR)buffer[i]] = (UCHAR)(strlen_word - i);
     }
   }
 } //InitQuickSearch
 
-int QuickSearch_FW(WideString const & string, const char* substr, int n, int m, int begin_word_pos, bool SearchSelection, bool casesensitive)
+int QuickSearch_FW(const char* String, const char* substr, int n, int m, int begin_word_pos, bool SearchSelection, bool casesensitive)
 {
   int i;
 
@@ -153,7 +142,7 @@ int QuickSearch_FW(WideString const & string, const char* substr, int n, int m, 
     if (casesensitive)
       res = memcmp(&String[i], substr, m) != 0;
     else
-      res = FSF.LStrnicmp(&String[i], substr, m) != 0;
+      res = strnicmp /*FSF.LStrnicmp*/(&String[i], substr, m) != 0;
 
     if (!res && (SearchSelection ||
                  (!is_char(String[i + m]) &&
@@ -167,7 +156,7 @@ int QuickSearch_FW(WideString const & string, const char* substr, int n, int m, 
   return -1;
 } //QuickSearch_FW
 
-int QuickSearch_BW(WideString const & string, WideString const & substr, int n, int m, bool SearchSelection, bool casesensitive)
+int QuickSearch_BW(const char* String, const char* substr, int n, int m, bool SearchSelection, bool casesensitive)
 {
   int i;
 
@@ -175,9 +164,9 @@ int QuickSearch_BW(WideString const & string, WideString const & substr, int n, 
   while (i >= 0)
   {
     if (casesensitive)
-      res = memcmp(string.data() + i, substr.data(), m) != 0;
+      res = memcmp(&String[i], substr, m) != 0;
     else
-      res = FSF.LStrnicmp(string.data() + i, substr, m) != 0;
+      res = res = strnicmp /*FSF.LStrnicmp*/(&String[i], substr, m) != 0;
 
     if (!res && (SearchSelection ||
                  (!is_char(String[i + m]) &&
@@ -194,7 +183,7 @@ int QuickSearch_BW(WideString const & string, WideString const & substr, int n, 
 bool GetFile(WideString const & FileName, char*& buffer, UINT& sz)
 {
   buffer = NULL;
-  HANDLE s = CreateFile(a2w(FileName).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+  HANDLE s = CreateFile(FileName.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
   if (s != INVALID_HANDLE_VALUE)
   {
     sz = GetFileSize(s, NULL);
@@ -223,7 +212,7 @@ int file_exists(WideString const & fname)
 int get_cursor_pos(int &x, int &String)
 {
   struct EditorInfo EInfo;
-  if (!Info.EditorControl(ECTL_GETINFO, &EInfo))
+  if (!Info.EditorControl(-1, ECTL_GETINFO, 0, &EInfo))
     return false;
   x = EInfo.CurPos;
   String = EInfo.CurLine;
@@ -240,7 +229,7 @@ void set_cursor_pos(int x, int y, struct EditorInfo* pei)
   esp.LeftPos = pei->LeftPos;
   esp.CurTabPos = -1;
   esp.Overtype = -1;
-  Info.EditorControl(ECTL_SETPOSITION, &esp);
+  Info.EditorControl(-1, ECTL_SETPOSITION, 0, &esp);
 
   if (y != -1)
   {
@@ -251,9 +240,9 @@ void set_cursor_pos(int x, int y, struct EditorInfo* pei)
     esp.LeftPos = -1;
     esp.CurTabPos = -1;
 
-    Info.EditorControl(ECTL_SETPOSITION, &esp);
+    Info.EditorControl(-1, ECTL_SETPOSITION, 0, &esp);
   }
-  Info.EditorControl(ECTL_REDRAW, NULL);
+  Info.EditorControl(-1, ECTL_REDRAW, 0, NULL);
 } //set_cursor_pos
 
 int CheckForEsc(void)
@@ -376,8 +365,16 @@ WideString const	a2w(AnsiString const &s) {
 	return WideString(s.begin(), s.end());
 }
 
+WideString const	a2w(char const *s) {
+	return WideString(s, s + strlen(s));
+}
+
 AnsiString const	w2a(WideString const &s) {
 	return AnsiString(s.begin(), s.end());
+}
+
+AnsiString const	w2a(wchar_t const     * s) {
+	return AnsiString(s, s + wcslen(s));
 }
 
 StringPtr asStringPtr(AnsiString const &s) {
@@ -390,16 +387,43 @@ StringPtr asStringPtr(WideString const &s) {
   return StringPtr(result);
 }
 
-WideString const	toLower(WideString const &s) {
+template <typename charT>
+std::basic_string<charT> const transformCase(std::basic_string<charT> & s, const charT* (std::ctype<charT>::*functor) (charT* low, const charT* high) const) {
   std::locale               loc;
-  WideString                result (s);
-  std::ctype<char> const  & facet = std::use_facet <std::ctype<char>> (loc);
-  char                    * beg = const_cast<char*>(result.c_str());
-  char const              * end = beg + result.length();
+  std::basic_string<charT>  result (s);
+  std::ctype<charT> const & facet = std::use_facet <std::ctype<charT>> (loc);
+  charT                   * beg = const_cast<charT*>(result.c_str());
+  charT const             * end = beg + result.length();
 
-  facet.tolower (beg, end);
+  (facet.*functor) (beg, end);
 
   return result;
+}
+
+WideString const	toLower(WideString const &s) {
+  WideString                result (s);
+  return transformCase<wchar_t> (result, (const wchar_t* (std::ctype<wchar_t>::*) (wchar_t* low, const wchar_t* high) const) &std::ctype<wchar_t>::tolower);
+}
+
+AnsiString const	toLower(AnsiString const &s) {
+  AnsiString                result (s);
+  return transformCase<char> (result, (const char* (std::ctype<char>::*) (char* low, const char* high) const) &std::ctype<char>::tolower);
+}
+
+WideString const	toUpper(WideString const &s) {
+  WideString                result (s);
+  return transformCase<wchar_t> (result, (const wchar_t* (std::ctype<wchar_t>::*) (wchar_t* low, const wchar_t* high) const) &std::ctype<wchar_t>::toupper);
+}
+
+AnsiString const	toUpper(AnsiString const &s) {
+  AnsiString                result (s);
+  return transformCase<char> (result, (const char* (std::ctype<char>::*) (char* low, const char* high) const) &std::ctype<char>::toupper);
+}
+
+void toUpper(char *s) {
+  std::locale               loc;
+  std::ctype<char> const  & facet = std::use_facet <std::ctype<char>> (loc);
+  facet.toupper (s, s + strlen(s));
 }
 
 WideString const	i2s(long i) {
@@ -407,3 +431,18 @@ WideString const	i2s(long i) {
   buf << i;
   return buf.str();
 }
+
+int strcmp(char const * src, wchar_t const * dst) {
+  //Program Files (x86)\Microsoft Visual Studio 12.0\VC\crt\src\strcmp.c
+  int ret = 0 ;
+
+  while( ! (ret = *(unsigned char *)src - *dst) && *dst)
+          ++src, ++dst;
+
+  if ( ret < 0 )
+          ret = -1 ;
+  else if ( ret > 0 )
+          ret = 1 ;
+
+  return( ret );
+}    

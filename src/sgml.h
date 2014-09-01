@@ -78,6 +78,7 @@ class CSgmlEl
   //bool GetFltParam(char *par,double *result);
 
   PSgmlEl search(const char* TagName);
+  PSgmlEl search(const wchar_t* TagName);
   PSgmlEl enumchilds(int no);
   // in full hierarchy
   virtual PSgmlEl fprev();
