@@ -9,3 +9,5 @@ typedef std::wstring              WideString;
 typedef std::string               AnsiString;
 typedef std::vector<WideString>   WideStringList;
 typedef std::vector<AnsiString>   AnsiStringList;
+
+using string = AnsiString;

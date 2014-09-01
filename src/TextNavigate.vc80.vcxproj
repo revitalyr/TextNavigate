@@ -277,10 +277,6 @@
     <ClCompile Include="pclasses.cpp" />
     <ClCompile Include="reg.cpp" />
     <ClCompile Include="sgml.cpp" />
-    <ClCompile Include="string.cpp">
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)string_TN</ObjectFileName>
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)string_TN</ObjectFileName>
-    </ClCompile>
     <ClCompile Include="TextNavigate.cpp" />
     <ClCompile Include="tools.cpp" />
     <ClCompile Include="unicode\BitArray.cpp" />
@@ -294,13 +290,13 @@
     <ClCompile Include="unicode\UnicodeTools.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="defs.h" />
     <ClInclude Include="Dialog.h" />
     <ClInclude Include="farkeys.hpp" />
     <ClInclude Include="Headers.c\plugin.hpp" />
     <ClInclude Include="pclasses.h" />
     <ClInclude Include="reg.h" />
     <ClInclude Include="sgml.h" />
-    <ClInclude Include="string.hpp" />
     <ClInclude Include="TextNavigate.h" />
     <ClInclude Include="tools.h" />
   </ItemGroup>
