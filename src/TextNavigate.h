@@ -5,7 +5,7 @@
 //#include "plugin.h"
 #include "defs.h"
 #include "pclasses.h"
-#include "string.hpp"
+//#include "string.hpp"
 #include "TextNavigate-lng.h"
 
 #define FarSprintf FSF.sprintf
