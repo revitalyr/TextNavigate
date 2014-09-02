@@ -81,7 +81,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental />
     <EmbedManifest>true</EmbedManifest>
-    <OutDir>E:\tmp\Vitaly\far\unicode_far\Debug.32.vc\Plugins\TextNavigate</OutDir>
+    <OutDir>E:\tmp\Vitaly\far\unicode_far\Debug.64.vc\Plugins\TextNavigate\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>C:\Program Files\Far Manager\Plugins\textnavigate</OutDir>
@@ -157,13 +157,21 @@
     <Link>
       <AdditionalDependencies>kernel32.lib;Advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)TextNavigate.dll</OutputFile>
-      <ModuleDefinitionFile>
-      </ModuleDefinitionFile>
+      <ModuleDefinitionFile>TextNavigate.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <GenerateMapFile>true</GenerateMapFile>
       <SubSystem>Windows</SubSystem>
       <ImportLibrary>$(OutDir)TextNavigate.lib</ImportLibrary>
     </Link>
+    <CustomBuildStep>
+      <Command>for %%I in ($(ProjectDir)misc\TextNavigate.xml $(ProjectDir)misc\TextNavigate_eng.lng $(ProjectDir)misc\TextNavigate_rus.hlf $(ProjectDir)misc\TextNavigate_rus.lng) do copy /Y %%I $(OutDir)%%~nxI &amp;&amp; md $(OutDir)xml &amp;&amp; for %%I in ($(ProjectDir)misc\xml\*) do copy /Y %%I $(OutDir)xml\%%~nxI</Command>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>TextNavigate.xml;TextNavigate_eng.lng;TextNavigate_rus.hlf;TextNavigate_rus.lng;xml/*;%(Outputs)</Outputs>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Inputs>misc/TextNavigate.xml;misc/TextNavigate_eng.lng;misc/TextNavigate_rus.hlf;misc/TextNavigate_rus.lng;misc/xml/*</Inputs>
+    </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Midl>
@@ -266,6 +274,15 @@
       <NoEntryPoint>true</NoEntryPoint>
       <ImportLibrary>$(OutDir)TextNavigate.lib</ImportLibrary>
     </Link>
+    <CustomBuildStep>
+      <Command>copy %(FullPath) </Command>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>TextNavigate.xml;TextNavigate_eng.lng;TextNavigate_rus.hlf;TextNavigate_rus.lng;xml/*;%(Outputs)</Outputs>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Inputs>misc/TextNavigate.xml;misc/TextNavigate_eng.lng;misc/TextNavigate_rus.hlf;misc/TextNavigate_rus.lng;misc/xml/*;%(Inputs)</Inputs>
+    </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="common\Exception.cpp" />
@@ -299,6 +316,35 @@
     <ClInclude Include="sgml.h" />
     <ClInclude Include="TextNavigate.h" />
     <ClInclude Include="tools.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="misc\TextNavigate_eng.lng">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="misc\TextNavigate_rus.hlf">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="misc\TextNavigate_rus.lng">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="TextNavigate.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="misc\TextNavigate.xml">
+      <DeploymentContent>true</DeploymentContent>
+    </Xml>
+    <Xml Include="misc\xml\c.xml">
+      <DeploymentContent>true</DeploymentContent>
+    </Xml>
+    <Xml Include="misc\xml\pascal.xml">
+      <DeploymentContent>true</DeploymentContent>
+    </Xml>
+    <Xml Include="misc\xml\perl.xml">
+      <DeploymentContent>true</DeploymentContent>
+    </Xml>
+    <Xml Include="misc\xml\python.xml">
+      <DeploymentContent>true</DeploymentContent>
+    </Xml>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

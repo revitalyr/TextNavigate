@@ -28,6 +28,9 @@
     <Filter Include="Header Files\Headers.c">
       <UniqueIdentifier>{2b2556cd-288b-44de-b824-b9a95a38d394}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files\xml">
+      <UniqueIdentifier>{ef93e750-b891-4894-9091-e2c620f76e0e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Dialog.cpp">
@@ -119,5 +122,36 @@
     <ClInclude Include="defs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="TextNavigate.def">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="misc\TextNavigate_eng.lng">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="misc\TextNavigate_rus.hlf">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="misc\TextNavigate_rus.lng">
+      <Filter>Resource Files</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="misc\TextNavigate.xml">
+      <Filter>Resource Files</Filter>
+    </Xml>
+    <Xml Include="misc\xml\c.xml">
+      <Filter>Resource Files\xml</Filter>
+    </Xml>
+    <Xml Include="misc\xml\pascal.xml">
+      <Filter>Resource Files\xml</Filter>
+    </Xml>
+    <Xml Include="misc\xml\perl.xml">
+      <Filter>Resource Files\xml</Filter>
+    </Xml>
+    <Xml Include="misc\xml\python.xml">
+      <Filter>Resource Files\xml</Filter>
+    </Xml>
   </ItemGroup>
 </Project>

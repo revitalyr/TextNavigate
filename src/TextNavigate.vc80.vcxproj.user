@@ -7,8 +7,8 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommand>C:\Program Files\Far Manager\Far.exe</LocalDebuggerCommand>
-    <LocalDebuggerWorkingDirectory>C:\Program Files\Far Manager</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerCommand>E:\tmp\Vitaly\far\unicode_far\Debug.64.vc\Far.exe</LocalDebuggerCommand>
+    <LocalDebuggerWorkingDirectory>E:\tmp\Vitaly\far\unicode_far\Debug.64.vc</LocalDebuggerWorkingDirectory>
     <LocalDebuggerAttach>false</LocalDebuggerAttach>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
