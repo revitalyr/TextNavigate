@@ -36,8 +36,10 @@ typedef struct
               class TRegistryStorage
 *******************************************************************************/
 
-struct TRegistryStorage
+class TRegistryStorage
 {
+    int GetRegKeyEx(const wchar_t *Key, const char *ValueName, char * ValueData, const char * Default, DWORD DataSize);
+public:
     TRegistryStorage();
     void SavePluginOptions();
 

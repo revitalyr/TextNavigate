@@ -46,7 +46,38 @@ void TRegistryStorage::DeleteRegValue(const wchar_t *Key, const char *Value)
 {
   PluginSettings settings(MainGuid, Info.SettingsControl);
 
-  settings.OpenSubKey(0, Key);
-  settings.DeleteValue(0, a2w(Value).c_str());
+  if (settings.OpenSubKey(0, Key))
+    settings.DeleteValue(0, a2w(Value).c_str());
 }
 
+int TRegistryStorage::GetRegKeyEx(const wchar_t *Key, const char *ValueName, char * ValueData, const char * Default, DWORD DataSize)
+{
+  PluginSettings settings(MainGuid, Info.SettingsControl);
+
+  if(settings.OpenSubKey(0, Key)) {
+    settings.Get(0, a2w(ValueName).c_str(), const_cast<wchar_t*>/*???*/ (a2w(ValueData).c_str()), DataSize / 2 /*???*/, a2w(Default).c_str());
+  }
+  else
+  {
+    if (Default != NULL)
+      memcpy(ValueData, Default, DataSize);
+    else
+      ZeroMemory(ValueData, (int)DataSize);
+    return false;
+  }
+  return DataSize;
+}
+
+
+int TRegistryStorage::GetRegKey(const wchar_t *Key, const char *ValueName, char *ValueData, char *Default, DWORD DataSize)
+{
+  return GetRegKeyEx(Key, ValueName, ValueData, Default, DataSize);
+}
+
+void TRegistryStorage::SetRegKey(const wchar_t *Key, const char *ValueName, const char *ValueData)
+{
+  PluginSettings settings(MainGuid, Info.SettingsControl);
+
+  settings.CreateSubKey(0, Key);
+  settings.Set(0, a2w(ValueName).c_str(), a2w(ValueData).c_str());
+}

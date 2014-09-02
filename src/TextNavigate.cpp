@@ -41,7 +41,7 @@ extern "C"
 
 #define DllExport   __declspec( dllexport )
 
-DllExport void WINAPI SetStartupInfo(const struct PluginStartupInfo *PSInfo)
+void WINAPI SetStartupInfoW(const struct PluginStartupInfo *PSInfo)
 {
   ::Info = *PSInfo;
   FSF = *PSInfo->FSF;
@@ -52,7 +52,7 @@ DllExport void WINAPI SetStartupInfo(const struct PluginStartupInfo *PSInfo)
   TextNavigate = new CTextNavigate();
 } //SetStartupInfo
 
-DllExport void GetPluginInfo(struct PluginInfo *PInfo)
+void GetPluginInfoW(struct PluginInfo *PInfo)
 {
   DebugString(L"GetPluginInfo");
   PInfo->StructSize = sizeof(struct PluginInfo);
@@ -80,7 +80,7 @@ void WINAPI GetGlobalInfoW(struct GlobalInfo *Info)
 }
 
 
-DllExport HANDLE OpenPlugin(int, int)
+HANDLE WINAPI OpenW(const struct OpenInfo *Info)
 {
   if (TextNavigate)
     TextNavigate->ShowPluginMenu();
