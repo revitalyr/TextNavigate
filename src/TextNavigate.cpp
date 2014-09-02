@@ -39,22 +39,22 @@ const wchar_t *get_msg(int id)
 extern "C"
 #endif
 
-#define DllExport   __declspec( dllexport )
-
 void WINAPI SetStartupInfoW(const struct PluginStartupInfo *PSInfo)
 {
-  ::Info = *PSInfo;
-  FSF = *PSInfo->FSF;
-  Info.FSF = &FSF;
-  DebugString(L"SetStartupInfo:");
+  DebugString(L"SetStartupInfoW:");
+  if (PSInfo->StructSize >= sizeof(PluginStartupInfo)) {
+    ::Info = *PSInfo;
+    FSF = *PSInfo->FSF;
+    Info.FSF = &FSF;
 
-  RegistryStorage = new TRegistryStorage();
-  TextNavigate = new CTextNavigate();
+    RegistryStorage = new TRegistryStorage();
+    TextNavigate = new CTextNavigate();
+  }
 } //SetStartupInfo
 
-void GetPluginInfoW(struct PluginInfo *PInfo)
+void WINAPI GetPluginInfoW(struct PluginInfo *PInfo)
 {
-  DebugString(L"GetPluginInfo");
+  DebugString(L"GetPluginInfoW");
   PInfo->StructSize = sizeof(struct PluginInfo);
   PInfo->Flags = PF_DISABLEPANELS|PF_EDITOR;
 
@@ -70,6 +70,7 @@ void GetPluginInfoW(struct PluginInfo *PInfo)
 
 void WINAPI GetGlobalInfoW(struct GlobalInfo *Info)
 {
+  DebugString(L"GetGlobalInfoW");
   Info->StructSize=sizeof(GlobalInfo);
   Info->MinFarVersion=FARMANAGERVERSION;
   Info->Version=PLUGIN_VERSION;
@@ -79,7 +80,6 @@ void WINAPI GetGlobalInfoW(struct GlobalInfo *Info)
   Info->Author=PLUGIN_AUTHOR;
 }
 
-
 HANDLE WINAPI OpenW(const struct OpenInfo *Info)
 {
   if (TextNavigate)
@@ -88,42 +88,38 @@ HANDLE WINAPI OpenW(const struct OpenInfo *Info)
   return INVALID_HANDLE_VALUE;
 } //OpenPlugin
 
-DllExport void  ExitFAR()
-{
+void WINAPI ExitFARW(const struct ExitInfo *Info) {
   delete RegistryStorage;
   delete TextNavigate;
   TextNavigate = NULL;
 } //ExitFAR
 
-int Configure(int)
-{
+intptr_t WINAPI ConfigureW(const struct ConfigureInfo *Info) {
   if (TextNavigate)
     TextNavigate->config_plugin();
   return false;
 } //Configure
 
-DllExport int ProcessEditorInput(const INPUT_RECORD *Rec)
-{
-  if (!plugin_options.b_active || !TextNavigate) return 0;
-  return TextNavigate->ProcessEditorInput(Rec);
+intptr_t WINAPI ProcessEditorInputW(const struct ProcessEditorInputInfo *Info) {
+  if ((Info->StructSize < sizeof(ProcessEditorInputInfo)) || !plugin_options.b_active || !TextNavigate) return 0;
+  return TextNavigate->ProcessEditorInput(&Info->Rec);
 } //ProcessEditorInput
 
-DllExport int ProcessEditorEvent(int Event, void *Param)
-{
+intptr_t WINAPI ProcessEditorEventW(const struct ProcessEditorEventInfo *Info) {
   //if (!b_active) return 0;
-  if (!TextNavigate) return 0;
-  return TextNavigate->ProcessEditorEvent(Event, Param);
+  if ((Info->StructSize < sizeof(ProcessEditorEventInfo)) || !TextNavigate) return 0;
+  return TextNavigate->ProcessEditorEvent(Info->Event, Info->Param);
 } //ProcessEditorEvent
 
-#ifdef __cplusplus
-extern "C"{
-#endif
-  DllExport bool DllMainCRTStartup(HANDLE hDll, DWORD dwReason, LPVOID lpReserved);
-#ifdef __cplusplus
-};
-#endif
-
-DllExport bool DllMainCRTStartup(HANDLE hDll, DWORD dwReason, LPVOID lpReserved)
-{
-  return true;
-}
+//#ifdef __cplusplus
+//extern "C"{
+//#endif
+//  bool DllMainCRTStartup(HANDLE hDll, DWORD dwReason, LPVOID lpReserved);
+//#ifdef __cplusplus
+//};
+//#endif
+//
+//bool DllMainCRTStartup(HANDLE hDll, DWORD dwReason, LPVOID lpReserved)
+//{
+//  return true;
+//}

@@ -5,3 +5,7 @@ EXPORTS
    OpenW
    SetStartupInfoW
    GetGlobalInfoW
+   ExitFARW
+   ConfigureW
+   ProcessEditorInputW
+   ProcessEditorEventW
