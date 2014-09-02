@@ -164,7 +164,7 @@
       <ImportLibrary>$(OutDir)TextNavigate.lib</ImportLibrary>
     </Link>
     <CustomBuildStep>
-      <Command>for %%I in ($(ProjectDir)misc\TextNavigate.xml $(ProjectDir)misc\TextNavigate_eng.lng $(ProjectDir)misc\TextNavigate_rus.hlf $(ProjectDir)misc\TextNavigate_rus.lng) do copy /Y %%I $(OutDir)%%~nxI &amp;&amp; md $(OutDir)xml &amp;&amp; for %%I in ($(ProjectDir)misc\xml\*) do copy /Y %%I $(OutDir)xml\%%~nxI</Command>
+      <Command>for %%I in ($(ProjectDir)misc\supl\* $(ProjectDir)misc\supl\xml\*) do copy_supl_files.bat %%I $(OutDir)%%~nxI</Command>
     </CustomBuildStep>
     <CustomBuildStep>
       <Outputs>TextNavigate.xml;TextNavigate_eng.lng;TextNavigate_rus.hlf;TextNavigate_rus.lng;xml/*;%(Outputs)</Outputs>

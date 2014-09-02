@@ -1341,8 +1341,14 @@ void TWindowData::SaveBookmarks()
 
 void TWindowData::LoadBookmarks()
 {
-  struct WindowInfo wi;
+  struct WindowInfo wi = {sizeof(WindowInfo)};
   wi.Pos = eid;
+  if (!Info.AdvControl(&MainGuid, ACTL_GETWINDOWINFO, 0, (void*)&wi))
+    return;
+
+  WideString        nameHolder(wi.NameSize + 1, ' ');
+  wi.Name = const_cast<wchar_t*> (nameHolder.c_str());
+  wi.NameSize = nameHolder.length();
   if (!Info.AdvControl(&MainGuid, ACTL_GETWINDOWINFO, 0, (void*)&wi))
     return;
 
