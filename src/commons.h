@@ -80,12 +80,13 @@ class CRefColl
         return;
       }
       CRefColl *fl = next;
-      while (fl != this)
+      while (fl && (fl != this))
       {
-        fl = fl->next;
-        if (owns)
-          delete fl->prev->Ref;
-        delete fl->prev;
+        if ((fl = fl->next) != nullptr) {
+          if (owns && fl->prev)
+            delete fl->prev->Ref;
+          delete fl->prev;
+        }
       }
       if (owns)
         delete Ref;

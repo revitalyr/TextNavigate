@@ -4650,7 +4650,7 @@ struct mallinfo mALLINFo()
   int i;
   mbinptr b;
   mchunkptr p;
-  INTERNAL_SIZE_T avail;
+  INTERNAL_SIZE_T avail = 0;
   INTERNAL_SIZE_T fastavail;
   int nblocks;
   int nfastblocks;
@@ -4661,7 +4661,7 @@ struct mallinfo mALLINFo()
   check_malloc_state();
 
   /* Account for top */
-  avail = chunksize(av->top);
+  if (av->top != 0)  avail = chunksize(av->top);
   nblocks = 1;  /* top always exists */
 
   /* traverse fastbins */

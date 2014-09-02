@@ -105,7 +105,8 @@ ECharCategory Character::getCategory(wchar c){
 }
 
 char *Character::getCategoryName(wchar c){
-  return char_category_names[CHAR_CATEGORY(CHAR_PROP(c))];
+  size_t    cat = CHAR_CATEGORY(CHAR_PROP(c));
+  return (cat < sizeof(char_category_names) ? char_category_names[cat] : "???BAD CATEGORY???");
 }
 
 int Character::getCombiningClass(wchar c){

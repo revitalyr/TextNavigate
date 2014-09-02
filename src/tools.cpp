@@ -95,10 +95,9 @@ int get_word(WideString & word, WideString const & str, int pos, int sln, int& b
 #define ASIZE 256
 static UCHAR qs_bc[ASIZE];
 
-void InitQuickSearch(bool searchUp, AnsiString const & substr, bool casesensitive)
+void InitQuickSearch(bool SearchUp, const char *substr, int strlen_word, bool casesensitive)
 {
-  int strlen_word = substr.length();
-  if (searchUp)
+  if (SearchUp)
   {
     FillMemory(qs_bc, strlen_word, ASIZE);
     for (int i = 0; i < strlen_word; i++)
@@ -108,8 +107,8 @@ void InitQuickSearch(bool searchUp, AnsiString const & substr, bool casesensitiv
     if (!casesensitive)
     {
       char buffer[MAX_WORD_LENGTH];
-	    strncpy(buffer, substr.c_str(), MAX_WORD_LENGTH);
-      toUpper(buffer);  //FSF.LStrupr(buffer);
+      strcpy(buffer, substr);
+      toUpper(buffer); //FSF.LStrupr(buffer);
       for (int i = 0; i < strlen_word; i++)
         if (qs_bc[(UCHAR)buffer[i]] == strlen_word)
           qs_bc[(UCHAR)buffer[i]] = i ? (UCHAR)i : (UCHAR)strlen_word;
@@ -124,13 +123,14 @@ void InitQuickSearch(bool searchUp, AnsiString const & substr, bool casesensitiv
     if (!casesensitive)
     {
       char buffer[MAX_WORD_LENGTH];
-	    strncpy(buffer, substr.c_str(), MAX_WORD_LENGTH);
-      toUpper(buffer);  //FSF.LStrupr(buffer);
+      strcpy(buffer, substr);
+      toUpper(buffer); //FSF.LStrupr(buffer);
       for (int i = 0; i < strlen_word; i++)
         qs_bc[(UCHAR)buffer[i]] = (UCHAR)(strlen_word - i);
     }
   }
 } //InitQuickSearch
+
 
 int QuickSearch_FW(const char* String, const char* substr, int n, int m, int begin_word_pos, bool SearchSelection, bool casesensitive)
 {

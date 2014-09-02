@@ -1962,7 +1962,7 @@ int CPluginMenu::Execute(WideString const &Title, WideString const &Bottom)
 
 CXMLFile::CXMLFile() : SearchPaths(nullptr)
 {
-  init(NULL);
+  init(WideString());
 }
 
 CXMLFile::CXMLFile(WideString const &xml_file_name) : SearchPaths(nullptr)
