@@ -79,7 +79,7 @@ int get_word(AnsiString &word, AnsiString const &str, int pos, int sln, int &beg
   //if (j > MAX_WORD_LENGTH - 1)
   if (j > MAX_PATH - 1)
     return false;
-  word = AnsiString(str.c_str()+i+1, str.c_str()+j + 1);
+  word = AnsiString(str.c_str()+i+1, j);
   return (j != 0);
 } //get_word
 
@@ -99,7 +99,7 @@ void InitQuickSearch(bool SearchUp, const char *substr, int strlen_word, bool ca
 {
   if (SearchUp)
   {
-    FillMemory(qs_bc, strlen_word, ASIZE);
+    memset(qs_bc, strlen_word, ASIZE);
     for (int i = 0; i < strlen_word; i++)
       if (qs_bc[(UCHAR)substr[i]] == strlen_word)
         qs_bc[(UCHAR)substr[i]] = i ? (UCHAR)i : (UCHAR)strlen_word;
@@ -116,7 +116,7 @@ void InitQuickSearch(bool SearchUp, const char *substr, int strlen_word, bool ca
   }
   else //search down
   {
-    FillMemory(qs_bc, (UCHAR)(strlen_word + 1), ASIZE);
+    memset(qs_bc, (UCHAR)(strlen_word + 1), ASIZE);
     for (int i = 0; i < strlen_word; i++)
       qs_bc[(UCHAR)substr[i]] = (UCHAR)(strlen_word - i);
 
@@ -137,7 +137,7 @@ int QuickSearch_FW(const char* String, const char* substr, int n, int m, int beg
   int i;
 
   i = begin_word_pos; bool res;
-  while (i <= n - m)
+  while (i <= n - m + 1)
   {
     if (casesensitive)
       res = memcmp(&String[i], substr, m) != 0;
@@ -209,19 +209,19 @@ int file_exists(WideString const & fname)
   return (GetFileAttributes(fname.c_str()) != (DWORD)(-1));
 } //file_exists
 
-int get_cursor_pos(int &x, int &String)
+bool get_cursor_pos(int &curPos, int &curLine)
 {
-  struct EditorInfo EInfo;
+  struct EditorInfo EInfo = {sizeof(EditorInfo)};
   if (!Info.EditorControl(-1, ECTL_GETINFO, 0, &EInfo))
     return false;
-  x = EInfo.CurPos;
-  String = EInfo.CurLine;
+  curPos = EInfo.CurPos;
+  curLine = EInfo.CurLine;
   return true;
 } //get_cursor_pos
 
 void set_cursor_pos(int x, int y, struct EditorInfo* pei)
 {
-  struct EditorSetPosition esp;
+  struct EditorSetPosition esp = {sizeof(EditorSetPosition)};
 
   esp.CurLine = pei->CurLine;
   esp.CurPos = pei->CurPos;

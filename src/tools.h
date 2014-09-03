@@ -30,7 +30,7 @@ bool GetFile(WideString const & FileName, char*& buffer, UINT& sz);
 int file_exists(WideString const & fname);
 
 void set_cursor_pos(int x, int y, struct EditorInfo *pei);
-int get_cursor_pos(int& x, int& String);
+bool get_cursor_pos(int& curPos, int& curLine);
 
 int CheckForEsc(void);
 PSgmlEl GetChild(PSgmlEl parent, const wchar_t* Name);
