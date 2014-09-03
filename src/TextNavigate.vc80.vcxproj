@@ -81,7 +81,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental />
     <EmbedManifest>true</EmbedManifest>
-    <OutDir>E:\tmp\Vitaly\far\unicode_far\Debug.64.vc\Plugins\TextNavigate\</OutDir>
+    <OutDir>E:\tmp\Vitaly\far\unicode_far\Release.64.vc\Plugins\TextNavigate\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>C:\Program Files\Far Manager\Plugins\textnavigate</OutDir>
@@ -137,7 +137,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;_USRDLL;COLORER_FEATURE_USE_DL_MALLOC=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <StructMemberAlignment>Default</StructMemberAlignment>
@@ -290,7 +290,6 @@
     <ClCompile Include="common\MemoryChunks.cpp" />
     <ClCompile Include="cregexp\cregexp.cpp" />
     <ClCompile Include="Dialog.cpp" />
-    <ClCompile Include="misc\malloc.c" />
     <ClCompile Include="pclasses.cpp" />
     <ClCompile Include="reg.cpp" />
     <ClCompile Include="sgml.cpp" />

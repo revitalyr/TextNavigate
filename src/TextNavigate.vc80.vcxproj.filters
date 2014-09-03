@@ -87,9 +87,6 @@
     <ClCompile Include="common\MemoryChunks.cpp">
       <Filter>Source Files\common</Filter>
     </ClCompile>
-    <ClCompile Include="misc\malloc.c">
-      <Filter>Source Files\misc</Filter>
-    </ClCompile>
     <ClCompile Include="unicode\BitArray.cpp">
       <Filter>Source Files\unicode</Filter>
     </ClCompile>
