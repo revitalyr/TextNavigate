@@ -49,43 +49,45 @@ class CXMLFile;
               class CFoundDataArray
 *******************************************************************************/
 
-class CFoundDataArray : public CRefArray<_FOUND>
+class CFoundDataArray// : public CRefArray<_FOUND>
 {
   private:
-    int m_count;
+    std::map<size_t, _FOUND>   mData;
+    //int m_count;
   public:
-    CFoundDataArray(int Capacity) : CRefArray<_FOUND>(Capacity), m_count(0)
-    { }
+    //CFoundDataArray(int Capacity) : CRefArray<_FOUND>(Capacity), m_count(0)
+    //{ }
 
-    ~CFoundDataArray()
-    {
-      cleanup();
-    }
+    ~CFoundDataArray();
+    //{
+    //  cleanup();
+    //}
 
-    void insert(WideString const &FileName, int index)
-    {
-      _FOUND* item = Item(m_count++);
-      item->file_name = FileName;
-      item = Item(index);
-      item->path_index = index;
-      item->file_path.clear();
-      item->path_index = -1;
-    }
+    void insert(WideString const &FileName, size_t index);
+    //{
+    //  _FOUND* item = Item(m_count++);
+    //  item->file_name = FileName;
+    //  item = Item(index);
+    //  item->path_index = index;
+    //  item->file_path.clear();
+    //  item->path_index = -1;
+    //}
 
-    void cleanup()
-    {
-      for (int i = 0; i < m_count; i++)
-      {
-        Item(i)->file_name.clear();
-        Item(i)->file_path.clear();
-      }
-      m_count = 0;
-    }
+    void cleanup();
+    //{
+    //  for (int i = 0; i < m_count; i++)
+    //  {
+    //    Item(i)->file_name.clear();
+    //    Item(i)->file_path.clear();
+    //  }
+    //  m_count = 0;
+    //}
 
-    int count()
-    {
-      return m_count;
-    }
+    size_t count() const;
+    //{
+    //  return m_count;
+    //}
+    _FOUND * Item(size_t index) const;
 }; //CFoundDataArray
 
 /*******************************************************************************
@@ -153,7 +155,7 @@ class CSearchPaths
     void MakePathWays();
     void FindAllSubDirs(WideString const &RootDir);
  public:
-   CSearchPaths(PSgmlEl elem);
+   //CSearchPaths(PSgmlEl elem);
    ~CSearchPaths();
 
    bool ProcessCtrlEnter(SLanguage* Language);
@@ -477,6 +479,7 @@ struct FFarMenuItem
   int         Selected;
   int         Checked;
   int         Separator;
+  FFarMenuItem() : Selected(0), Checked(0), Separator(0) {}
 };
 
 typedef struct FFarMenuItem* PFFarMenuItem;
@@ -487,8 +490,11 @@ typedef class CPluginMenu* PPluginMenu;
               class CPluginMenu
 *******************************************************************************/
 
-class CPluginMenu : public CRefArray<FarMenuItem>
+class CPluginMenu// : public CRefArray<FarMenuItem>
 {
+  std::vector<FarMenuItem>    mData;
+protected:
+  FarMenuItem * Item(size_t no) const;
  public:
   CPluginMenu(int NumElements, PFFarMenuItem Elements, int FNumElements = -1);
   FarMenuItem *Setup(int num, const FFarMenuItem &mi);

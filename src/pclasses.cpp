@@ -323,12 +323,14 @@ int CTextNavigate::ProcessEditorEvent(int Event, void* Param)
       break;
 
     case EE_CLOSE:
-      id = *static_cast<int *>(Param);
-      XMLFilesColl.Delete(id);
-      if (plugin_options.b_active && plugin_options.b_savebookmarks)
-        SaveBookmarks(id);
-      ClearBookmarks(id, false);
-      windows.Delete(id);
+      if(Param) {
+        id = *static_cast<int *>(Param);
+        XMLFilesColl.Delete(id);
+        if (plugin_options.b_active && plugin_options.b_savebookmarks)
+          SaveBookmarks(id);
+        ClearBookmarks(id, false);
+        windows.Delete(id);
+      }
       break;
 
  } //switch
@@ -347,7 +349,7 @@ int CTextNavigate::processCtrlAltUpDown(int FKeyCode, int FPrevKeyCode)
     DebugString(L"Ctrl-Alt-Down pressed");
   }
 #endif
-  struct EditorInfo EInfo;
+  struct EditorInfo EInfo = {sizeof (EditorInfo)};
   if (!Info.EditorControl(-1, ECTL_GETINFO, 0, &EInfo))
     return 0;
 
@@ -364,7 +366,7 @@ int CTextNavigate::processCtrlAltUpDown(int FKeyCode, int FPrevKeyCode)
   if (!get_cursor_pos(mx, my))
     return false;
 
-  struct EditorGetString EStr;
+  struct EditorGetString EStr = {sizeof(EditorGetString)};
   EStr.StringNumber = CurLine;
   if (!Info.EditorControl(-1, ECTL_GETSTRING, 0, &EStr))
     return 0;
@@ -428,9 +430,9 @@ int CTextNavigate::do_search(const char* String, const char* substr, bool Search
   int search_pos = SearchUp ? begin_word_pos : begin_word_pos+1;
   bool borders_crossed = false; //признак зацикливани€ поиска
   int BeginLine = CurLine;
-  struct EditorGetString EStr;
+  struct EditorGetString EStr = {sizeof(EditorGetString)};
   EStr.StringNumber = -1; //получаем текущую строку
-  struct EditorSetPosition esp;
+  struct EditorSetPosition esp = {sizeof(EditorSetPosition)};
   esp.CurPos = esp.CurTabPos = esp.TopScreenLine = esp.LeftPos = esp.Overtype = -1;
 
   if (!FPrevKeyCode || FKeyCode != FPrevKeyCode) //раньше было нажато не Ctrl-Alt-Up/Down
@@ -444,8 +446,8 @@ int CTextNavigate::do_search(const char* String, const char* substr, bool Search
       Info.EditorControl(-1, ECTL_SETPOSITION, 0, &esp);
       Info.EditorControl(-1, ECTL_GETSTRING, 0, &EStr);
       StringLength = EStr.StringLength;
-      static AnsiString strHolder = w2a(EStr.StringText);
-      String = strHolder.c_str();
+      static AnsiString strHolder; 
+      String = (strHolder = w2a(EStr.StringText)).c_str();
       search_pos = SearchUp ? EStr.StringLength : 0;
     }
 
@@ -852,7 +854,7 @@ bool CTextNavigate::FindMethodDefinition(int &CurLine, int &x_pos)
 
 int CTextNavigate::ShowPluginMenu()
 {
-  struct EditorInfo EInfo;
+  struct EditorInfo EInfo = {sizeof(EditorInfo)};
   if (!Info.EditorControl(-1, ECTL_GETINFO, 0, &EInfo))
     return 0;
 
@@ -878,7 +880,8 @@ int CTextNavigate::ShowPluginMenu()
   const int *Msgs = IsSimpleMenu ? MItemsSimple : MItemsLang;
   const int n_Items = IsSimpleMenu ? n_ItemsSimple : n_ItemsLang;
 
-  AutoPtr<FFarMenuItem, VectorPtr> fmi (new FFarMenuItem[n_Items]);
+  //AutoPtr<FFarMenuItem, VectorPtr> fmi (new FFarMenuItem[n_Items]);
+  std::vector<FFarMenuItem>     fmi(n_Items);
   for (int i = 0; i < n_Items; i++)
   {
     if (i == n_Items - 2)
@@ -886,7 +889,8 @@ int CTextNavigate::ShowPluginMenu()
     else
       fmi[i].Text = get_msg(Msgs[i]);
   }
-  AutoPtr<CPluginMenu> PluginMenu (new CPluginMenu(n_Items, fmi));
+  //AutoPtr<CPluginMenu> PluginMenu (new CPluginMenu(n_Items, fmi));
+  CPluginMenu PluginMenu (n_Items, &fmi[0]);
 
   int selected;
 
@@ -894,7 +898,7 @@ int CTextNavigate::ShowPluginMenu()
   {
     do
     {
-      selected = PluginMenu->Execute(get_msg(STitle), NULL);
+      selected = PluginMenu.Execute(get_msg(STitle), L"");
       switch (selected)
       {
         case 0: //MFindNext
@@ -938,7 +942,7 @@ int CTextNavigate::ShowPluginMenu()
   {
     do
     {
-      selected = PluginMenu->Execute(get_msg(STitle), NULL);
+      selected = PluginMenu.Execute(get_msg(STitle), L"");
 
       switch (selected)
       {
@@ -1020,7 +1024,7 @@ void CTextNavigate::config_plugin()
   dlg->Item(4)->Selected = plugin_options.b_cyclicsearch;
   dlg->Item(5)->Selected = plugin_options.b_searchselection;
   dlg->Item(6)->Selected = plugin_options.b_savebookmarks;
-throw "TODO";
+//throw "TODO";
 //  strcpy(dlg->Item(8)->Data, plugin_options.s_AdditionalLetters);
 //  dlg->Item(8)->Focus = true;
   //...
@@ -1424,18 +1428,44 @@ void TWindowData::PopBookmark()
   delete pEInfo;
 }
 
+////////////////////////////////CFoundDataArray
+CFoundDataArray::~CFoundDataArray() {
+}
+
+size_t CFoundDataArray::count() const {
+  return mData.size();
+}
+
+void CFoundDataArray::insert(WideString const &FileName, size_t index) {
+  mData [index].file_name = FileName;
+}
+
+void CFoundDataArray::cleanup() {
+  mData.clear();
+}
+
+_FOUND * CFoundDataArray::Item(size_t index) const {
+  using   CIt = std::map<size_t, _FOUND>::const_iterator;
+  CIt     it = mData.find(index);
+
+  if (it == mData.end())
+    return nullptr;
+
+  //_FOUND const  * ret = it->second;
+  return const_cast<_FOUND*> (&it->second);
+}
 /*******************************************************************************
               class CSearchPaths
 *******************************************************************************/
 
-CSearchPaths::CSearchPaths(PSgmlEl elem)
-              : was_found (MAX_FOUND_COUNT)
-{
-  if(elem) {
-    AddSearchPaths(elem);  
-    pathways.add(get_def_path());  
-  }
-} //CSearchPaths
+//CSearchPaths::CSearchPaths(PSgmlEl elem)
+//              : was_found (MAX_FOUND_COUNT)
+//{
+//  if(elem) {
+//    AddSearchPaths(elem);  
+//    pathways.add(get_def_path());  
+//  }
+//} //CSearchPaths
 
 CSearchPaths::~CSearchPaths()
 {
@@ -1927,7 +1957,8 @@ SMethod::~SMethod()
 *******************************************************************************/
 
 CPluginMenu::CPluginMenu(int NumElements, PFFarMenuItem Elements, int FNumElements)
-  : CRefArray<FarMenuItem>(NumElements)
+  : mData(NumElements)
+  //: CRefArray<FarMenuItem>(NumElements)
 {
   Setup(0, Elements, (-1 == FNumElements) ? NumElements : FNumElements);
 }
@@ -1954,24 +1985,35 @@ FarMenuItem *CPluginMenu::Setup(int num, const FFarMenuItem &mi)
 
 int CPluginMenu::Execute(WideString const &Title, WideString const &Bottom)
 {
-  return Info.Menu(&MainGuid, &MenuGuid, -1, -1, 0, FMENU_AUTOHIGHLIGHT|FMENU_WRAPMODE, 
-                   Title.c_str(),
-                   Bottom.c_str(), //bottom
-                   L"Contents", //helptopic
-                   NULL, NULL, //breakkeys, breakcode
-                   (FarMenuItem *)Items(), Count());
+  return Info.Menu(&MainGuid,   //GUID плагина (дл€ вашего плагина, GUID должен быть таким же, что и в поле GlobalInfo.Guid функции GetGlobalInfoW)
+                   &MenuGuid,   //GUID текущего меню. GUID должен быть уникальным
+                   -1, -1,      // оординаты верхнего левого угла меню. „тобы назначить их автоматически, приравн€йте их -1.
+                   0,           //ћаксимальное количество видимых на экране пунктов меню.
+                   FMENU_AUTOHIGHLIGHT|FMENU_WRAPMODE, //гор€чие клавиши будут назначены автоматически, начина€ с первого пункта, попытка перемещени€ курсора выше первого пункта или ниже последнего будет приводить к перемещению соответственно к последнему или к первому пункту. 
+                   Title.c_str(), //«аголовок меню
+                   Bottom.c_str(), //Ќижн€€ строка меню
+                   L"Contents", //“ема в файле помощи, ассоциированна€ с меню
+                   NULL,        //breakkeys - јдрес массива с кодами виртуальных клавиш типа FarKey, которые будут закрывать меню.
+                   NULL,        //breakcode - јдрес переменной, в которую будет записан номер элемента массива BreakKeys, использованного дл€ закрыти€ меню, или -1, если меню было закрыто одной из стандартных клавиш.
+                   &mData[0],   //јдрес массива структур FarMenuItem.  ажда€ структура описывает элемент меню.
+                   mData.size() // оличество структур FarMenuItem.
+                   );
+                   //(FarMenuItem *)Items(), Count());
 }
 
+FarMenuItem * CPluginMenu::Item(size_t no) const {
+  return const_cast<FarMenuItem *> (&mData[no]);
+}
 /*******************************************************************************
               class CXMLFile
 *******************************************************************************/
 
-CXMLFile::CXMLFile() : SearchPaths(nullptr)
+CXMLFile::CXMLFile() :Language(nullptr)//: SearchPaths(nullptr)
 {
   init(WideString());
 }
 
-CXMLFile::CXMLFile(WideString const &xml_file_name) : SearchPaths(nullptr)
+CXMLFile::CXMLFile(WideString const &xml_file_name) :Language(nullptr)//: SearchPaths(nullptr)
 {
   init(xml_file_name);
 }
