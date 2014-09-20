@@ -26,7 +26,8 @@ TRegistryStorage::TRegistryStorage()
   plugin_options.b_cyclicsearch = settings.Get(0, REG_KEY_CYCLIC_SEARCH, true);
   plugin_options.b_searchselection = settings.Get(0, REG_KEY_SEARCH_SELECTION, false);
   plugin_options.b_savebookmarks = settings.Get(0, REG_KEY_SAVE_BOOKMARKS, true);
-  settings.Get(0, REG_KEY_ADDITIONAL_LETTERS, plugin_options.s_AdditionalLetters, MAX_CHAR_SET_LENGTH, DEFAULT_ADDITIONAL_LETTERS);
+  WideString  defAddLetters = a2w(DEFAULT_ADDITIONAL_LETTERS);
+  settings.Get(0, REG_KEY_ADDITIONAL_LETTERS, plugin_options.s_AdditionalLetters, MAX_CHAR_SET_LENGTH * sizeof(wchar_t), defAddLetters.c_str());
 }
 
 void TRegistryStorage::SavePluginOptions()
@@ -39,7 +40,7 @@ void TRegistryStorage::SavePluginOptions()
   settings.Set(0, REG_KEY_CYCLIC_SEARCH, plugin_options.b_cyclicsearch);
   settings.Set(0, REG_KEY_SEARCH_SELECTION, plugin_options.b_searchselection);
   settings.Set(0, REG_KEY_SAVE_BOOKMARKS, plugin_options.b_savebookmarks);
-  settings.Set(0, REG_KEY_ADDITIONAL_LETTERS, plugin_options.s_AdditionalLetters);
+  settings.Set(0, REG_KEY_ADDITIONAL_LETTERS, plugin_options.s_AdditionalLetters, MAX_CHAR_SET_LENGTH * sizeof(wchar_t));
 }
 
 void TRegistryStorage::DeleteRegValue(const wchar_t *Key, const char *Value)

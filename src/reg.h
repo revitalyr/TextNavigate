@@ -5,7 +5,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#define DEFAULT_ADDITIONAL_LETTERS L"Р-пр-я№-И_"
+#define DEFAULT_ADDITIONAL_LETTERS "Р-пр-я№-И_"
 #define MAX_CHAR_SET_LENGTH 30
 #define KN 0x200
 
