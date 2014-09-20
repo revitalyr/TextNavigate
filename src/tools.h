@@ -72,9 +72,7 @@ struct PluginStartupInfo;
 WideString const	getEditorFilename (PluginStartupInfo const & info);
 
 WideString const	a2w(AnsiString const      & s);
-WideString const	a2w(char const            * s);
 AnsiString const	w2a(WideString const      & s);
-AnsiString const	w2a(wchar_t const         * s);
 
 WideString const	toLower(WideString const  & s);
 AnsiString const	toLower(AnsiString const  & s);

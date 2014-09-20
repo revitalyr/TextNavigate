@@ -51,11 +51,15 @@ void AddSubSetToUnion(UCHAR *set)
 
 void InitUnion()
 {
-  ZeroMemory(&CharSet, 32);
+  memset(&CharSet, 0, sizeof(CharSet));
   AddEngCharsToUnion();
   if (plugin_options.b_adddigits)
     AddDigitsToUnion();
-  AddSubSetToUnion((UCHAR *)plugin_options.s_AdditionalLetters);
+
+  size_t    N = wcslen(plugin_options.s_AdditionalLetters);
+  UCHAR     additionalLetters[MAX_CHAR_SET_LENGTH] = {0};
+  strncpy(reinterpret_cast<char *> (additionalLetters), w2a(plugin_options.s_AdditionalLetters).c_str(), N);
+  AddSubSetToUnion(additionalLetters);
 } //InitUnion
 
 int is_char(UCHAR c)
@@ -361,20 +365,66 @@ WideString const	getEditorFilename (PluginStartupInfo const & info) {
   return fileName;
 }
 
-WideString const	a2w(AnsiString const &s) {
-	return WideString(s.begin(), s.end());
-}
+#include <cvt/cp1251>
+#include <cvt/wstring>
 
-WideString const	a2w(char const *s) {
-	return WideString(s, s + strlen(s));
+//http://habrahabr.ru/post/112997/ vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+/**@brief Сужает широкую строку, используя локализацию loc
+   @return Возвращает суженную строку или пустую суженную строку, в случае. если возникла ошибка*/
+std::string narrow(const std::wstring& wstr, const std::locale& loc)
+{
+  const size_t sz = wstr.length();
+  if(sz == 0)
+    return std::string();
+  mbstate_t state = 0;
+  char *cnext;
+  const wchar_t *wnext;
+  const wchar_t *wcstr = wstr.c_str();
+  char *buffer = new char[sz + 1];
+  std::uninitialized_fill(buffer, buffer + sz + 1, 0);
+  typedef std::codecvt<wchar_t, char, mbstate_t> cvt;
+  cvt::result res;
+  res = std::use_facet<cvt>(loc).out(state, wcstr, wcstr + sz, wnext,
+      buffer, buffer + sz, cnext);
+  std::string result(buffer);
+  if(res == cvt::error)
+    return std::string();
+  return result;
+}
+ 
+/**@brief Расширяет строку, используя локализацию loc
+   @return Возвращает расширенную строку или пустую расширенную строку, в случае, если возникла ошибка.*/
+std::wstring widen(const std::string& str, const std::locale& loc)
+{
+  const size_t sz = str.length();
+  if(sz == 0)
+    return std::wstring();
+  mbstate_t state = 0;
+  const char *cnext;
+  wchar_t *wnext;
+  const char *cstr = str.c_str();
+  wchar_t *buffer = new wchar_t[sz + 1];
+  std::uninitialized_fill(buffer, buffer + sz + 1, 0);
+  typedef std::codecvt<wchar_t, char, mbstate_t> cvt;
+  cvt::result res;
+  res = std::use_facet<cvt>(loc).in(state, cstr, cstr + sz, cnext,
+      buffer, buffer + sz, wnext);
+  std::wstring result(buffer);
+  delete [] buffer;
+  if(res == cvt::error)
+    return std::wstring();
+  return result;
+}
+//http://habrahabr.ru/post/112997/ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+std::locale default_locale_cp(std::locale(), new stdext::cvt::codecvt_cp1251<wchar_t>);
+
+WideString const	a2w(AnsiString const &s) {
+  return widen(s, default_locale_cp);
 }
 
 AnsiString const	w2a(WideString const &s) {
-	return AnsiString(s.begin(), s.end());
-}
-
-AnsiString const	w2a(wchar_t const     * s) {
-	return AnsiString(s, s + wcslen(s));
+	return narrow(s, default_locale_cp);
 }
 
 StringPtr asStringPtr(AnsiString const &s) {
