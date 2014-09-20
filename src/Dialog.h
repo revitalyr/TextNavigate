@@ -5,7 +5,9 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-//#include "plugin.h"
+#include <vector>
+
+#include "Headers.c/plugin.hpp"
 //#include "crtdll.h"
 #include "commons.h"
 
@@ -16,18 +18,7 @@ typedef const wchar_t *CONSTSTR;
 #define FFDI_SELECTED  0x00020000UL
 #define FFDI_DEFAULT   0x00040000UL
 
-typedef struct FDialogItem
-{
-  DWORD    Type;
-  int      X1;
-  int      Y1;
-  int      X2;
-  int      Y2;
-  DWORD    Flags;
-  CONSTSTR Text;
-} *PFDialogItem;
-
-typedef struct FarDialogItem *PFarDialogItem;
+//typedef struct FarDialogItem *PFarDialogItem;
 
 //описание произвольного обьекта диалога
 #define FDI_CONTROL(tp, x, y, x1, y1, fl, txt)    { tp, x, y, x1, y1, fl, txt }
@@ -60,14 +51,28 @@ typedef struct FarDialogItem *PFarDialogItem;
 
 typedef class CConfigDialog *PConfigDialog;
 
-class CConfigDialog : public CRefArray<FarDialogItem>
+class CConfigDialog //: public CRefArray<FarDialogItem>
 {
  public:
+  struct FDialogItem
+  {
+    DWORD           Type;
+    int             X1;
+    int             Y1;
+    int             X2;
+    int             Y2;
+    DWORD           Flags;
+    wchar_t const * Text;
+  };
+  typedef std::vector<FarDialogItem>  Items;
+  Items       mItems;
+ public:
   //CConfigDialog(int NumElemens);
-  CConfigDialog(int NumElemens, PFDialogItem Elements, int FNumElements = -1);
-  PFarDialogItem Setup(int num, const FDialogItem &p);
-  void Setup(int From, PFDialogItem p, int count);
-  int Execute(int w, int h, CONSTSTR Help = NULL);
+  CConfigDialog(int NumElemens, FDialogItem const * Elements, int FNumElements = -1);
+  void Setup(int num, const FDialogItem &p);
+  void Setup(int From, FDialogItem const * p, int count);
+  FarDialogItem *Item(size_t num);
+  int Execute(int w, int h, CONSTSTR Help = nullptr);
 };
 
 #endif /* __DIALOG_H */

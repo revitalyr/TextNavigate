@@ -12,22 +12,22 @@
               class CConfigDialog
 *******************************************************************************/
 
-CConfigDialog::CConfigDialog(int NumElements, PFDialogItem Elements, int FNumElements)
-  : CRefArray<FarDialogItem>(NumElements)
+CConfigDialog::CConfigDialog(int NumElements, FDialogItem const * Elements, int FNumElements)
+  : mItems(NumElements) //CRefArray<FarDialogItem>(NumElements)
 {
   Setup(0, Elements, (-1 == FNumElements) ? NumElements : FNumElements);
 }
 
-void CConfigDialog::Setup(int From, PFDialogItem p, int ECount)
+void CConfigDialog::Setup(int From, FDialogItem const *  p, int ECount)
 {
   for (int n = 0; n < ECount; n++)
     Setup(From+n, p[n]);
 }
 
-PFarDialogItem CConfigDialog::Setup(int num, const FDialogItem& it)
+void CConfigDialog::Setup(int num, const FDialogItem& it)
 {
-  PFarDialogItem p = Item(num);
-  if (!p) return NULL;
+  FarDialogItem * p = Item(num);
+  //if (!p) return NULL;
 
   p->Type = FARDIALOGITEMTYPES (it.Type & 0xFFFF);
   p->X1 = it.X1;
@@ -40,19 +40,34 @@ PFarDialogItem CConfigDialog::Setup(int num, const FDialogItem& it)
   //p->DefaultButton = IS_FLAG(it.Type, FFDI_DEFAULT);
   //strcpy(p->Data, it.Text ? it.Text : "");
 
-  //wcscpy(p->Data, it.Text ? a2w(it.Text).c_str() : L"");
+  p->Data = it.Text ? it.Text : L"";
 
-  return p;
+//  return p;
 }
 
 int CConfigDialog::Execute(int w, int h, CONSTSTR Help)
 {
-  PluginDialogBuilder builder(Info, MainGuid, DialogGuid, 2/*no in TextNavigate_*.lng*/, nullptr);
-  PFarDialogItem      item = Items();
-
-  return builder.ShowDialog();
+  //PluginDialogBuilder builder(Info, MainGuid, DialogGuid, 2/*no in TextNavigate_*.lng*/, nullptr);
+  HANDLE          dlgHndl = Info.DialogInit(&MainGuid,   //GUID плагина (для вашего плагина, GUID должен быть таким же, что и в поле GlobalInfo.Guid функции GetGlobalInfoW)
+                                            &MenuGuid,   //GUID текущего меню. GUID должен быть уникальным
+                                            -1, -1,
+                                            w, h,
+                                            Help, 
+                                            &mItems[0], 
+                                            mItems.size(),
+                                            0,
+                                            0,
+                                            nullptr,
+                                            nullptr
+                                            );
+  return Info.DialogRun(dlgHndl);
+//  return builder.ShowDialog();
   //return Info.Dialog(Info.ModuleNumber, -1, -1, w, h,
   //                   (char *)Help,
   //                   (PFarDialogItem)Items(),
   //                   Count());
+}
+
+FarDialogItem *CConfigDialog::Item(size_t num) {
+  return &mItems[num];
 }
