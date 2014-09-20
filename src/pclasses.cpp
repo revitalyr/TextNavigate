@@ -996,7 +996,7 @@ void CTextNavigate::config_plugin()
 {
   int height = 67, weight = 14;
 
-  FDialogItem itm[] =
+  CConfigDialog::FDialogItem itm[] =
   {
    //FDI_CONTROL(DI_DOUBLEBOX, 3, 1, 63, 11, 0, get_msg(SCfgTitle)),
    FDI_DOUBLEBOX(height, weight, get_msg(SCfgTitle)),
@@ -1016,32 +1016,34 @@ void CTextNavigate::config_plugin()
   };
 
   static const int n_itm = sizeof(itm)/sizeof(*itm);
-  AutoPtr<CConfigDialog> dlg (new CConfigDialog(n_itm, itm));
+  //AutoPtr<CConfigDialog>  dlg (new CConfigDialog(n_itm, itm));
+  CConfigDialog         dlg(n_itm, itm);
 
-  dlg->Item(1)->Selected = plugin_options.b_active;
-  dlg->Item(2)->Selected = plugin_options.b_adddigits;
-  dlg->Item(3)->Selected = plugin_options.b_casesensitive;
-  dlg->Item(4)->Selected = plugin_options.b_cyclicsearch;
-  dlg->Item(5)->Selected = plugin_options.b_searchselection;
-  dlg->Item(6)->Selected = plugin_options.b_savebookmarks;
-//throw "TODO";
-//  strcpy(dlg->Item(8)->Data, plugin_options.s_AdditionalLetters);
-//  dlg->Item(8)->Focus = true;
+  dlg.Item(1)->Selected = plugin_options.b_active;
+  dlg.Item(2)->Selected = plugin_options.b_adddigits;
+  dlg.Item(3)->Selected = plugin_options.b_casesensitive;
+  dlg.Item(4)->Selected = plugin_options.b_cyclicsearch;
+  dlg.Item(5)->Selected = plugin_options.b_searchselection;
+  dlg.Item(6)->Selected = plugin_options.b_savebookmarks;
+
+  FarDialogItem   * item = dlg.Item(8);
+  item->Data = plugin_options.s_AdditionalLetters;
+  //dlg->Item(8)->Focus = true;
   //...
-  dlg->Item(n_itm-2)->Flags = DIF_CENTERGROUP;
-  dlg->Item(n_itm-1)->Flags = DIF_CENTERGROUP;
+  dlg.Item(n_itm-2)->Flags = DIF_CENTERGROUP;
+  dlg.Item(n_itm-1)->Flags = DIF_CENTERGROUP;
 
-  int d_code = dlg->Execute(height, weight);
+  int d_code = dlg.Execute(height, weight);
+
   if (d_code == n_itm - 2)
   {
-    plugin_options.b_active = !!dlg->Item(1)->Selected;
-    plugin_options.b_adddigits = !!dlg->Item(2)->Selected;
-    plugin_options.b_casesensitive = !!dlg->Item(3)->Selected;
-    plugin_options.b_cyclicsearch = !!dlg->Item(4)->Selected;
-    plugin_options.b_searchselection = !!dlg->Item(5)->Selected;
-    plugin_options.b_savebookmarks = !!dlg->Item(6)->Selected;
-throw "TODO";
-//    strcpy(plugin_options.s_AdditionalLetters, dlg->Item(8)->Data);
+    plugin_options.b_active = !!dlg.Item(1)->Selected;
+    plugin_options.b_adddigits = !!dlg.Item(2)->Selected;
+    plugin_options.b_casesensitive = !!dlg.Item(3)->Selected;
+    plugin_options.b_cyclicsearch = !!dlg.Item(4)->Selected;
+    plugin_options.b_searchselection = !!dlg.Item(5)->Selected;
+    plugin_options.b_savebookmarks = !!dlg.Item(6)->Selected;
+    //???wcscpy(plugin_options.s_AdditionalLetters, dlg->Item(8)->Data);
     RegistryStorage->SavePluginOptions();
   }
   InitUnion();
