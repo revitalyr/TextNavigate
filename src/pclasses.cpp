@@ -1694,7 +1694,7 @@ int CSearchPaths::find_file(wchar_t const *ExcludedFileExts)
 int CSearchPaths::ShowSelectFileMenu()
 {
   AutoPtr<FFarMenuItem, VectorPtr> fmi (new FFarMenuItem[was_found.count()]);
-  for (int i = 0; i < was_found.count(); i++)
+  for (size_t i = 0; i < was_found.count(); i++)
   {
     wchar_t tmp_str[MAX_PATH];
     FarSprintf(tmp_str, L"%-12s in %s", was_found.Item(i)->file_name, pathways.get(was_found.Item(i)->path_index));
@@ -1765,7 +1765,7 @@ int CSearchPaths::AlreadyFound(WideString const &path, WideString const &file_na
   if (get_full_file_name(cur_file_name, &fnd) == 0)
     return false;
 
-  for (int i = 0; i < was_found.count(); i++)
+  for (size_t i = 0; i < was_found.count(); i++)
   {
     WideString file_name;
 
