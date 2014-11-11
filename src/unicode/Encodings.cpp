@@ -115,8 +115,8 @@ int Encodings::toBytes(int encoding, wchar wc, byte *dest){
   if (encoding == ENC_UTF32){
     dest[0] = wc&0xFF;
     dest[1] = (wc>>8)&0xFF;
-    dest[2] = (wc>>16)&0xFF;
-    dest[3] = (wc>>14)&0xFF;
+    dest[2] = (wc>>16)&0xFF;  //TODO: warning C4333: >>: слишком большое смещение вправо; потеря данных
+    dest[3] = (wc>>14)&0xFF;  //TODO: warning C4333: >>: слишком большое смещение вправо; потеря данных
     return 4;
   };
   if (encoding == ENC_UTF32BE){
